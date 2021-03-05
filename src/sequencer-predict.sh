@@ -29,6 +29,10 @@ case $i in
     OUTPUT="${i#*=}"
     shift # past argument=value
     ;;
+    --tree_feat=*)
+    TREE_FEAT="${i#*=}"
+    shift # past argument=value
+    ;;
     *)
           # unknown option
     ;;
@@ -67,6 +71,10 @@ elif [[ "$OUTPUT" != /* ]]; then
   exit 1
 fi
 
+if [ -z "$TREE_FEAT" ]; then
+  TREE_FEAT="False"
+fi
+
 echo "Input parameter:"
 echo "BUGGY_FILE_PATH = ${BUGGY_FILE_PATH}"
 echo "BUGGY_LINE = ${BUGGY_LINE}"
@@ -92,7 +100,7 @@ fi
 echo
 
 echo "Tokenizing the abstraction"
-python3 $CURRENT_DIR/Buggy_Context_Abstraction/tokenize.py $CURRENT_DIR/tmp/${BUGGY_FILE_BASENAME}_abstract.java $CURRENT_DIR/tmp/${BUGGY_FILE_BASENAME}_abstract_tokenized.txt
+python3 $CURRENT_DIR/Buggy_Context_Abstraction/tokenize.py $CURRENT_DIR/tmp/${BUGGY_FILE_BASENAME}_abstract.java $CURRENT_DIR/tmp/${BUGGY_FILE_BASENAME}_abstract_tokenized.txt $TREE_FEAT
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Tokenization failed"
@@ -112,7 +120,13 @@ fi
 echo
 
 echo "Generating predictions"
-python3 $CURRENT_DIR/lib/OpenNMT-py/translate.py -model $ROOT_DIR/model/model.pt -src $CURRENT_DIR/tmp/${BUGGY_FILE_BASENAME}_abstract_tokenized_truncated.txt -output $CURRENT_DIR/tmp/predictions.txt -beam_size $BEAM_SIZE -n_best $BEAM_SIZE &>/dev/null
+if [ "$TREE_FEAT" == "True" ]; then
+    echo "Using Tree Feat Model"
+		python3 $CURRENT_DIR/lib/OpenNMT-py/translate.py -model $ROOT_DIR/model/final-model-tree-feat_step_20000.pt -src $CURRENT_DIR/tmp/${BUGGY_FILE_BASENAME}_abstract_tokenized_truncated.txt -output $CURRENT_DIR/tmp/predictions.txt -beam_size $BEAM_SIZE -n_best $BEAM_SIZE &>/dev/null
+else
+	  python3 $CURRENT_DIR/lib/OpenNMT-py/translate.py -model $ROOT_DIR/model/model.pt -src $CURRENT_DIR/tmp/${BUGGY_FILE_BASENAME}_abstract_tokenized_truncated.txt -output $CURRENT_DIR/tmp/predictions.txt -beam_size $BEAM_SIZE -n_best $BEAM_SIZE &>/dev/null
+fi
+
 echo
 
 echo "Post process predictions"

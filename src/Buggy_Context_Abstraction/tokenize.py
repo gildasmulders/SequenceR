@@ -19,17 +19,30 @@ def main(argv):
         tokens = list(javalang.tokenizer.tokenize(''.join(abstract_file_lines)))
         buggy_line_start = True
         buggy_line_end = True
+        indentation_count = 0
         for token in tokens:
+            if token.value=="}":
+                indentation_count -= 1
+
+            toAdd = ( ( "￨" + str(indentation_count) +  " ") if (len(argv)>=3 and argv[2]=="True") else " ")
+                
+            if token.value=="{":
+                indentation_count += 1
+
+
             if(token.position[0] == buggy_line and buggy_line_start):
-                tokens_string = tokens_string + "<START_BUG>" + " "
-                tokens_string = tokens_string + token.value + " "
+                tokens_string = tokens_string + "<START_BUG>" + toAdd
+                #tokens_string = tokens_string + token.value + " "
                 buggy_line_start = False
             elif(token.position[0] != buggy_line and not buggy_line_start and buggy_line_end):
-                tokens_string = tokens_string + "<END_BUG>" + " "
-                tokens_string = tokens_string + token.value + " "
+                tokens_string = tokens_string + "<END_BUG>" + toAdd
+                #tokens_string = tokens_string + token.value + " "
                 buggy_line_end = False
-            else:
-                tokens_string = tokens_string + token.value + " "
+            
+            tokens_string += token.value + toAdd
+                
+
+                
     except:
         sys.stderr.write("Tokenization failed\n")
         sys.exit(1)

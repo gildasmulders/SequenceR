@@ -21,7 +21,7 @@ fi
 cd $data_path
 echo "Starting test data translation"
 # Change code in translate.sh to adjust OpenNMT parameters (like beam width)
-translate.sh
+./translate.sh
 
 echo "sequencer-test.sh done"
 echo
