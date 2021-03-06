@@ -98,7 +98,7 @@ echo
 
 echo "Starting training.."
 cd $OpenNMT_py
-python3 train.py -data $CURRENT_DIR/tmp/final-${FEATURE} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_model $ROOT_DIR/model/final-model-${FEATURE} > $CURRENT_DIR/tmp/train.final.out
+python3 train.py -data $CURRENT_DIR/tmp/final-${FEATURE} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${STEPS} -save_model $ROOT_DIR/model/final-model-${FEATURE} > $CURRENT_DIR/tmp/train.final.out
 echo "train.sh complete" >> $CURRENT_DIR/tmp/train.out
 
 echo "Translating test set"
@@ -118,6 +118,11 @@ echo
 
 echo "Cleaning tmp folder"
 rm -rf $CURRENT_DIR/tmp
+echo
+
+echo "RESULT"
+echo
+cat $ROOT_DIR/results/mysequencer/perf_${FEATURE}_${STEPS}.txt
 echo
 
 echo "mysequencer-train-test.sh done"

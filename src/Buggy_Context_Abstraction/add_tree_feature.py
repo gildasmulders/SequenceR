@@ -43,7 +43,7 @@ def main(argv):
         tokenized_lines_with_tree_feature += new_line_with_tree_feature + "\n"
     
     tokenized_file_with_tree_feature = open(argv[1], "w")
-    tokenized_file_with_tree_feature.write(tokenized_lines_with_tree_feature + '\n')
+    tokenized_file_with_tree_feature.write(tokenized_lines_with_tree_feature)
     tokenized_file_with_tree_feature.close()
     sys.exit(0)
 
