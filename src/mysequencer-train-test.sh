@@ -5,7 +5,7 @@ echo "mysequencer-train-test.sh start"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
 
-HELP_MESSAGE=$'Usage: ./mysequencer-train-test --feature=[indent|tag|both] --steps=[int] --keep_model=[True|False]
+HELP_MESSAGE=$'Usage: ./mysequencer-train-test --feature=[indent|tag|both] --steps=[int] [--rm]
 feature: Which feature to use to enhance the data
 steps: nb of training steps to do (usual are 10000 or 20000)
 keep_model: boolean, whether we should keep the built model or not'
@@ -20,8 +20,8 @@ case $i in
     STEPS="${i#*=}"
     shift # past argument=value
     ;;
-    --keep_model=*)
-    KEEP_MODEL="${i#*=}"
+    --rm)
+    KEEP_MODEL="False"
     shift # past argument=value
     ;;
     *)
