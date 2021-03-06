@@ -6,8 +6,6 @@ HELP_MESSAGE=$'Usage: ./sequencer-train.sh
 Depends on environment variable settings
 export OpenNMT_py=.../OpenNMT-py
 export data_path=.../results/Golden  # Or a new directory path as desired'
-export OpenNMT_py=/SequenceR/src/lib/OpenNMT_py
-export data_path=/SequenceR/results/Golden
 
 if [ ! -f $OpenNMT_py/preprocess.py ]; then
   echo "OpenNMT_py environment variable should be set"

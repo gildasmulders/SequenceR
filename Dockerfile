@@ -2,6 +2,7 @@ FROM working-sequencer:v2
 
 WORKDIR /SequenceR
 
-RUN rm -r ./test-results/*
-
 COPY . /SequenceR
+
+ENV OpenNMT_py=/SequenceR/src/lib/OpenNMT_py
+ENV data_path=/SequenceR/results/Golden
