@@ -1,4 +1,6 @@
 .DS_Store
+*.pt
+model/
 src/lib/
-src/Buggy_Context_Abstraction/abstraction/target/
+src/Buggy_Context_Abstraction/
 __pycache__/

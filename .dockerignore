@@ -1,5 +1,7 @@
 .DS_Store
 src/lib/
-src/Buggy_Context_Abstraction/abstraction/target/
+src/Buggy_Context_Abstraction/
+src/Patch_Preparation/
+src/Defect4J_Experiment/
 __pycache__/
 

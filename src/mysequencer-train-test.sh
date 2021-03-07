@@ -5,7 +5,7 @@ echo "mysequencer-train-test.sh start"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
 
-HELP_MESSAGE=$'Usage: ./mysequencer-train-test --feature=[indent|tag|both] --steps=[int] [--rm]
+HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--feature=[indent|tag|both]] [--steps=[int]] [--rm] [--checkpoint=[int]]
 feature: Which feature to use to enhance the data
 steps: nb of training steps to do (usual are 10000 or 20000)
 keep_model: boolean, whether we should keep the built model or not'
@@ -18,6 +18,10 @@ case $i in
     ;;
     --steps=*)
     STEPS="${i#*=}"
+    shift # past argument=value
+    ;;
+    --checkpoint=*)
+    CHECK_STEPS="${i#*=}"
     shift # past argument=value
     ;;
     --rm)
@@ -36,14 +40,18 @@ if [ ! -f $OpenNMT_py/preprocess.py ]; then
   exit 1
 fi
 
-if [ -z "$FEATURE" ]; then
-  echo "FEATURE unset!"
-  echo "$HELP_MESSAGE"
-  exit 1
+NAME_FEAT=''
+
+if [ -n "$FEATURE" ]; then
+  NAME_FEAT="-${FEATURE}"
 fi
 
 if [ -z "$STEPS" ]; then
   STEPS=10000
+fi
+
+if [ -z "$CHECK_STEPS" ]; then
+  CHECK_STEPS=${STEPS}
 fi
 
 if [ -z "$KEEP_MODEL" ]; then
@@ -62,7 +70,7 @@ echo
 
 echo "Creating data with features..."
 echo "for src-train"
-python3 $CURRENT_DIR/Buggy_Context_Abstraction/add_tree_feature.py $ROOT_DIR/results/Golden/src-train.txt $CURRENT_DIR/tmp/src-train-${FEATURE}.txt $FEATURE
+python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-train.txt $CURRENT_DIR/tmp/src-train${NAME_FEAT}.txt $FEATURE
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-train failed"
@@ -72,7 +80,7 @@ fi
 echo
 
 echo "for src-val"
-python3 $CURRENT_DIR/Buggy_Context_Abstraction/add_tree_feature.py $ROOT_DIR/results/Golden/src-val.txt $CURRENT_DIR/tmp/src-val-${FEATURE}.txt $FEATURE
+python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-val.txt $CURRENT_DIR/tmp/src-val${NAME_FEAT}.txt $FEATURE
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-val failed"
@@ -82,7 +90,7 @@ fi
 echo
 
 echo "for src-test"
-python3 $CURRENT_DIR/Buggy_Context_Abstraction/add_tree_feature.py $ROOT_DIR/results/Golden/src-test.txt $CURRENT_DIR/tmp/src-test-${FEATURE}.txt $FEATURE
+python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-test.txt $CURRENT_DIR/tmp/src-test${NAME_FEAT}.txt $FEATURE
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-test failed"
@@ -93,26 +101,46 @@ echo
 
 echo "Starting data preprocessing"
 cd $OpenNMT_py
-python3 preprocess.py -train_src $CURRENT_DIR/tmp/src-train-${FEATURE}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src $CURRENT_DIR/tmp/src-val-${FEATURE}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab -save_data $CURRENT_DIR/tmp/final-${FEATURE} 2>&1 > $CURRENT_DIR/tmp/preprocess.out
+python3 preprocess.py -train_src $CURRENT_DIR/tmp/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src $CURRENT_DIR/tmp/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab -save_data $CURRENT_DIR/tmp/final${NAME_FEAT} 2>&1 > $CURRENT_DIR/tmp/preprocess.out
 echo 
 
-echo "Starting training.."
+
+if [[ "$FEATURE" == "both" ]]; then
+  echo "Building custom embeddings for numerical features"
+  python3 $CURRENT_DIR/features_utils/create_feat_embedding.py $CURRENT_DIR/tmp/final-both.vocab.pt 1 $CURRENT_DIR/tmp/embedded_feat_1.pt
+fi
+
+if [[ "$FEATURE" == "indent" ]]; then
+  echo "Building custom embeddings for numerical features"
+  python3 $CURRENT_DIR/features_utils/create_feat_embedding.py $CURRENT_DIR/tmp/final-indent.vocab.pt 0 $CURRENT_DIR/tmp/embedded_feat_0.pt
+fi
+
+MODEL_FILE_NAME="$ROOT_DIR/model/final-model${NAME_FEAT}"
+if [ -f ${MODEL_FILE_NAME}_step_${STEPS}.pt ]; then
+  n=1
+  while [ -f $ROOT_DIR/model/final-model${NAME_FEAT}-${n}_step_${STEPS}.pt ]; do
+    n=$(( n+1 ))
+  done
+  MODEL_FILE_NAME=$ROOT_DIR/model/final-model${NAME_FEAT}-${n}
+fi
+
+echo "Starting training of ${MODEL_FILE_NAME}"
 cd $OpenNMT_py
-python3 train.py -data $CURRENT_DIR/tmp/final-${FEATURE} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${STEPS} -save_model $ROOT_DIR/model/final-model-${FEATURE} > $CURRENT_DIR/tmp/train.final.out
+python3 train.py -data $CURRENT_DIR/tmp/final${NAME_FEAT} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME > $CURRENT_DIR/tmp/train.final.out
 echo "train.sh complete" >> $CURRENT_DIR/tmp/train.out
 
 echo "Translating test set"
 cd $OpenNMT_py
-python3 translate.py -model $ROOT_DIR/model/final-model-${FEATURE}_step_${STEPS}.pt -src $CURRENT_DIR/tmp/src-test-${FEATURE}.txt -beam_size 50 -n_best 50 -output $CURRENT_DIR/tmp/pred-test_beam50_${FEATURE}.txt -dynamic_dict 2>&1 > $CURRENT_DIR/tmp/translate50.out
+python3 translate.py -model ${MODEL_FILE_NAME}_step_${STEPS}.pt -src $CURRENT_DIR/tmp/src-test${NAME_FEAT}.txt -beam_size 50 -n_best 50 -output $CURRENT_DIR/tmp/pred-test_beam50${NAME_FEAT}.txt -dynamic_dict 2>&1 > $CURRENT_DIR/tmp/translate50.out
 echo
 
 echo "Evaluating obtained performances"
-python3 $ROOT_DIR/results/eval.py $CURRENT_DIR/tmp/pred-test_beam50_${FEATURE}.txt $ROOT_DIR/results/Golden/tgt-test.txt > $ROOT_DIR/results/mysequencer/perf_${FEATURE}_${STEPS}.txt
+python3 $ROOT_DIR/results/eval.py $CURRENT_DIR/tmp/pred-test_beam50${NAME_FEAT}.txt $ROOT_DIR/results/Golden/tgt-test.txt >> $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${STEPS}.txt
 
 
-echo "Removing model if needed"
-if [ "$KEEP_MODEL" == "False" ]; then
-  rm $ROOT_DIR/model/final-model-${FEATURE}_step_${STEPS}.pt
+if [[ "$KEEP_MODEL" == "False" ]]; then
+  echo "Removing model"
+  rm ${MODEL_FILE_NAME}_step_${STEPS}.pt
 fi
 echo
 
@@ -122,7 +150,7 @@ echo
 
 echo "RESULT"
 echo
-cat $ROOT_DIR/results/mysequencer/perf_${FEATURE}_${STEPS}.txt
+cat $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${STEPS}.txt
 echo
 
 echo "mysequencer-train-test.sh done"
