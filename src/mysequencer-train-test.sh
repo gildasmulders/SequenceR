@@ -101,11 +101,11 @@ echo
 
 NUM_FEAT_NAMES=""
 if [[ "$FEATURE" == "both" ]]; then
-  NUM_FEAT_NAMES="--numerical_feat_names '[1]'"
+  NUM_FEAT_NAMES="--numerical_feat_names '[src_feat_1]'"
 fi
 
 if [[ "$FEATURE" == "indent" ]]; then
-  NUM_FEAT_NAMES="--numerical_feat_names '[0]'"
+  NUM_FEAT_NAMES="--numerical_feat_names '[src_feat_0]'"
 fi
 
 echo "Starting data preprocessing"
