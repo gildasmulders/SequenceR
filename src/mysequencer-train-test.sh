@@ -99,9 +99,18 @@ if [ $retval -ne 0 ]; then
 fi
 echo
 
+NUM_FEAT_NAMES=""
+if [[ "$FEATURE" == "both" ]]; then
+  NUM_FEAT_NAMES="--numerical_feat_names '[1]'"
+fi
+
+if [[ "$FEATURE" == "indent" ]]; then
+  NUM_FEAT_NAMES="--numerical_feat_names '[0]'"
+fi
+
 echo "Starting data preprocessing"
 cd $OpenNMT_py
-python3 preprocess.py -train_src $CURRENT_DIR/tmp/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src $CURRENT_DIR/tmp/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab -save_data $CURRENT_DIR/tmp/final${NAME_FEAT} 2>&1 > $CURRENT_DIR/tmp/preprocess.out
+python3 preprocess.py -train_src $CURRENT_DIR/tmp/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src $CURRENT_DIR/tmp/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab $NUM_FEAT_NAMES -save_data $CURRENT_DIR/tmp/final${NAME_FEAT} 2>&1 > $CURRENT_DIR/tmp/preprocess.out
 echo 
 
 NUM_FEAT_IDX=""
