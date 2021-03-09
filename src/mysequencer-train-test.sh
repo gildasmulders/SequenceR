@@ -99,27 +99,27 @@ if [ $retval -ne 0 ]; then
 fi
 echo
 
-NUM_FEAT_NAMES=""
+NUM_FEAT_NAMES='[]'
 if [[ "$FEATURE" == "both" ]]; then
-  NUM_FEAT_NAMES="--numerical_feat_names '[src_feat_1]'"
+  NUM_FEAT_NAMES='[src_feat_1]'
 fi
 
 if [[ "$FEATURE" == "indent" ]]; then
-  NUM_FEAT_NAMES="--numerical_feat_names '[src_feat_0]'"
+  NUM_FEAT_NAMES='[src_feat_0]'
 fi
 
 echo "Starting data preprocessing"
 cd $OpenNMT_py
-python3 preprocess.py -train_src $CURRENT_DIR/tmp/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src $CURRENT_DIR/tmp/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab $NUM_FEAT_NAMES -save_data $CURRENT_DIR/tmp/final${NAME_FEAT} 2>&1 > $CURRENT_DIR/tmp/preprocess.out
+python3 preprocess.py -train_src $CURRENT_DIR/tmp/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src $CURRENT_DIR/tmp/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab --numerical_feat_names "$NUM_FEAT_NAMES" -save_data $CURRENT_DIR/tmp/final${NAME_FEAT} 2>&1 > $CURRENT_DIR/tmp/preprocess.out
 echo 
 
-NUM_FEAT_IDX=""
+NUM_FEAT_IDX='[]'
 if [[ "$FEATURE" == "both" ]]; then
-  NUM_FEAT_IDX="--numerical_feat_idx '[1]'"
+  NUM_FEAT_IDX='[1]'
 fi
 
 if [[ "$FEATURE" == "indent" ]]; then
-  NUM_FEAT_IDX="--numerical_feat_idx '[0]'"
+  NUM_FEAT_IDX='[0]'
 fi
 
 MODEL_FILE_NAME="$ROOT_DIR/model/final-model${NAME_FEAT}"
@@ -133,7 +133,7 @@ fi
 
 echo "Starting training of ${MODEL_FILE_NAME}"
 cd $OpenNMT_py
-python3 train.py -data $CURRENT_DIR/tmp/final${NAME_FEAT} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME $NUM_FEAT_IDX > $CURRENT_DIR/tmp/train.final.out
+python3 train.py -data $CURRENT_DIR/tmp/final${NAME_FEAT} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME --numerical_feat_idx "$NUM_FEAT_IDX" > $CURRENT_DIR/tmp/train.final.out
 echo "train.sh complete" >> $CURRENT_DIR/tmp/train.out
 
 echo "Translating test set"

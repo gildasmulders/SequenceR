@@ -65,13 +65,20 @@ cd $OpenNMT_py
 python3 translate.py -model ${MODEL} -src $CURRENT_DIR/tmp/src-test${NAME_FEAT}.txt -beam_size 50 -n_best 50 -output $CURRENT_DIR/tmp/pred-test_beam50${NAME_FEAT}.txt -dynamic_dict 2>&1 > $CURRENT_DIR/tmp/translate50.out
 echo
 
+PERF_NAME=${MODEL#*step_}
 echo "Evaluating obtained performances"
-python3 $ROOT_DIR/results/eval.py $CURRENT_DIR/tmp/pred-test_beam50${NAME_FEAT}.txt $ROOT_DIR/results/Golden/tgt-test.txt
+python3 $ROOT_DIR/results/eval.py $CURRENT_DIR/tmp/pred-test_beam50${NAME_FEAT}.txt $ROOT_DIR/results/Golden/tgt-test.txt >> $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${PERF_NAME%.pt}.txt
 echo
 
 echo "Cleaning tmp folder"
 rm -rf $CURRENT_DIR/tmp
 echo
+
+echo "RESULT"
+echo cat $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${PERF_NAME%.pt}.txt
+echo
+
+echo "mysequencer-test done"
 
 
 
