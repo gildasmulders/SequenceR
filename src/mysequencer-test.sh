@@ -46,36 +46,46 @@ if [ -n "$FEATURE" ]; then
   NAME_FEAT="-${FEATURE}"
 fi
 
+
+TMP_DIRECTORY="$CURRENT_DIR/tmp"
+if [ -d ${TMP_DIRECTORY} ]; then
+  n=1
+  while [ -d "$CURRENT_DIR/tmp_${n}" ]; do
+    n=$(( n+1 ))
+  done
+  TMP_DIRECTORY="$CURRENT_DIR/tmp_${n}"
+fi
+
 echo "Creating temporary working folder"
-mkdir -p $CURRENT_DIR/tmp
+mkdir -p ${TMP_DIRECTORY}
 echo
 
 echo "Creating data with features for src-test"
-python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-test.txt $CURRENT_DIR/tmp/src-test${NAME_FEAT}.txt $FEATURE
+python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-test.txt ${TMP_DIRECTORY}/src-test${NAME_FEAT}.txt $FEATURE
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-test failed"
-  rm -rf $CURRENT_DIR/tmp
+  rm -rf ${TMP_DIRECTORY}
   exit 1
 fi
 echo
 
 echo "Translating test set"
 cd $OpenNMT_py
-python3 translate.py -model ${MODEL} -src $CURRENT_DIR/tmp/src-test${NAME_FEAT}.txt -beam_size 50 -n_best 50 -output $CURRENT_DIR/tmp/pred-test_beam50${NAME_FEAT}.txt -dynamic_dict 2>&1 > $CURRENT_DIR/tmp/translate50.out
+python3 translate.py -model ${MODEL} -src ${TMP_DIRECTORY}/src-test${NAME_FEAT}.txt -beam_size 50 -n_best 50 -output ${TMP_DIRECTORY}/pred-test_beam50${NAME_FEAT}.txt -dynamic_dict 2>&1 > ${TMP_DIRECTORY}/translate50.out
 echo
 
 PERF_NAME=${MODEL#*step_}
 echo "Evaluating obtained performances"
-python3 $ROOT_DIR/results/eval.py $CURRENT_DIR/tmp/pred-test_beam50${NAME_FEAT}.txt $ROOT_DIR/results/Golden/tgt-test.txt >> $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${PERF_NAME%.pt}.txt
+python3 $ROOT_DIR/results/eval.py ${TMP_DIRECTORY}/pred-test_beam50${NAME_FEAT}.txt $ROOT_DIR/results/Golden/tgt-test.txt >> $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${PERF_NAME%.pt}.txt
 echo
 
 echo "Cleaning tmp folder"
-rm -rf $CURRENT_DIR/tmp
+rm -rf ${TMP_DIRECTORY}
 echo
 
 echo "RESULT"
-echo cat $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${PERF_NAME%.pt}.txt
+cat $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${PERF_NAME%.pt}.txt
 echo
 
 echo "mysequencer-test done"
