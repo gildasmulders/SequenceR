@@ -5,17 +5,18 @@ echo "mysequencer-train-test.sh start"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
 
-HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--feature=[indent|tag|both]] [--steps=[int]] [--rm] [--checkpoint=[int]]
-feature: Which feature to use to enhance the data
+HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--steps=[int]] [--rm] [--checkpoint=[int]]
+indent: annotate data with indentation count
+tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tag
+number: number each word of each line of code starting with 0 at each new line
+kmost: tag each word with its rank of frequency 
 steps: nb of training steps to do (usual are 10000 or 20000)
 keep_model: boolean, whether we should keep the built model or not'
+
+array_feat=()
 for i in "$@"
 do
 case $i in
-    --feature=*)
-    FEATURE="${i#*=}"
-    shift # past argument=value
-    ;;
     --steps=*)
     STEPS="${i#*=}"
     shift # past argument=value
@@ -26,6 +27,22 @@ case $i in
     ;;
     --rm)
     KEEP_MODEL="False"
+    shift # past argument=value
+    ;;
+    --indent)
+    array_feat+=(indent)
+    shift # past argument=value
+    ;;
+    --tag)
+    array_feat+=(tag)
+    shift # past argument=value
+    ;;
+    --number)
+    array_feat+=(number)
+    shift # past argument=value
+    ;;
+    --kmost)
+    array_feat+=(kmost)
     shift # past argument=value
     ;;
     *)
@@ -40,10 +57,13 @@ if [ ! -f $OpenNMT_py/preprocess.py ]; then
   exit 1
 fi
 
-NAME_FEAT=''
+SAVE_IFS="$IFS"
+IFS="-"
+NAME_FEAT="${array_feat[*]}"
+IFS="$SAVE_IFS"
 
-if [ -n "$FEATURE" ]; then
-  NAME_FEAT="-${FEATURE}"
+if [ ${#array_feat[@]} -gt 0 ]; then
+  NAME_FEAT="-${NAME_FEAT}"
 fi
 
 if [ -z "$STEPS" ]; then
@@ -59,7 +79,7 @@ if [ -z "$KEEP_MODEL" ]; then
 fi
 
 echo "Input parameter:"
-echo "FEATURE = ${FEATURE}"
+echo "FEATURES = ${array_feat[@]}"
 echo "STEPS = ${STEPS}"
 echo "KEEP_MODEL = ${KEEP_MODEL}"
 echo
@@ -79,7 +99,7 @@ echo
 
 echo "Creating data with features..."
 echo "for src-train"
-python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-train.txt ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt $FEATURE
+num_feat=`python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-train.txt ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt ${array_feat[@]}`
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-train failed"
@@ -89,7 +109,7 @@ fi
 echo
 
 echo "for src-val"
-python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-val.txt ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt $FEATURE
+num_feat=`python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-val.txt ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt ${array_feat[@]}`
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-val failed"
@@ -99,7 +119,7 @@ fi
 echo
 
 echo "for src-test"
-python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-test.txt ${TMP_DIRECTORY}/src-test${NAME_FEAT}.txt $FEATURE
+num_feat=`python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-test.txt ${TMP_DIRECTORY}/src-test${NAME_FEAT}.txt ${array_feat[@]}`
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-test failed"
@@ -108,28 +128,18 @@ if [ $retval -ne 0 ]; then
 fi
 echo
 
-NUM_FEAT_NAMES='[]'
-if [[ "$FEATURE" == "both" ]]; then
-  NUM_FEAT_NAMES='[src_feat_1]'
-fi
+arr_num_feats=(${num_feat//-/ })
+NUM_FEAT_NAMES_VOCAB="${arr_num_feats[0]}"
+NUM_FEAT_NAMES_VOCAB=`echo "$NUM_FEAT_NAMES_VOCAB" | sed "s/'//g"`
 
-if [[ "$FEATURE" == "indent" ]]; then
-  NUM_FEAT_NAMES='[src_feat_0]'
-fi
 
 echo "Starting data preprocessing"
 cd $OpenNMT_py
-python3 preprocess.py -train_src ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab --numerical_feat_names "$NUM_FEAT_NAMES" -save_data ${TMP_DIRECTORY}/final${NAME_FEAT} 2>&1 > ${TMP_DIRECTORY}/preprocess.out
+python3 preprocess.py -train_src ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab --numerical_feat_names "$NUM_FEAT_NAMES_VOCAB" -save_data ${TMP_DIRECTORY}/final${NAME_FEAT} 2>&1 > ${TMP_DIRECTORY}/preprocess.out
 echo 
 
-NUM_FEAT_IDX='[]'
-if [[ "$FEATURE" == "both" ]]; then
-  NUM_FEAT_IDX='[1]'
-fi
-
-if [[ "$FEATURE" == "indent" ]]; then
-  NUM_FEAT_IDX='[0]'
-fi
+NUM_FEAT_NAMES_EMBED="${arr_num_feats[1]}"
+NUM_FEAT_NAMES_EMBED=`echo "$NUM_FEAT_NAMES_EMBED" | sed "s/'//g"`
 
 MODEL_FILE_NAME="$ROOT_DIR/model/final-model${NAME_FEAT}"
 if [ -f ${MODEL_FILE_NAME}_step_${STEPS}.pt ]; then
@@ -142,7 +152,7 @@ fi
 
 echo "Starting training of ${MODEL_FILE_NAME}"
 cd $OpenNMT_py
-python3 train.py -data ${TMP_DIRECTORY}/final${NAME_FEAT} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME --numerical_feat_idx "$NUM_FEAT_IDX" > ${TMP_DIRECTORY}/train.final.out
+python3 train.py -data ${TMP_DIRECTORY}/final${NAME_FEAT} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME --numerical_feat_names "$NUM_FEAT_NAMES_EMBED" > ${TMP_DIRECTORY}/train.final.out
 echo "train.sh complete" >> ${TMP_DIRECTORY}/train.out
 
 echo "Translating test set"

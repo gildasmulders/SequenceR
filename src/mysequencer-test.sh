@@ -5,18 +5,35 @@ echo "mysequencer-test.sh start"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
 
-HELP_MESSAGE=$'Usage: ./mysequencer-train-test --feature=[indent|tag|both] --model=[path/to/model]
-feature: Which feature to use to enhance the data
+HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] --model=[path/to/model]
+indent: annotate data with indentation count
+tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tag
+number: number each word of each line of code starting with 0 at each new line
+kmost: tag each word with its rank of frequency 
 model: absolute path to model '
+
+array_feat=()
 for i in "$@"
 do
 case $i in
-    --feature=*)
-    FEATURE="${i#*=}"
-    shift # past argument=value
-    ;;
     --model=*)
     MODEL="${i#*=}"
+    shift # past argument=value
+    ;;
+    --indent)
+    array_feat+=(indent)
+    shift # past argument=value
+    ;;
+    --tag)
+    array_feat+=(tag)
+    shift # past argument=value
+    ;;
+    --number)
+    array_feat+=(number)
+    shift # past argument=value
+    ;;
+    --kmost)
+    array_feat+=(kmost)
     shift # past argument=value
     ;;
     *)
@@ -40,10 +57,13 @@ if [ -z "$KEEP_PRED" ]; then
   KEEP_PRED="True"
 fi
 
-NAME_FEAT=''
+SAVE_IFS="$IFS"
+IFS="-"
+NAME_FEAT="${array_feat[*]}"
+IFS="$SAVE_IFS"
 
-if [ -n "$FEATURE" ]; then
-  NAME_FEAT="-${FEATURE}"
+if [ ${#array_feat[@]} -gt 0 ]; then
+  NAME_FEAT="-${NAME_FEAT}"
 fi
 
 
@@ -61,7 +81,7 @@ mkdir -p ${TMP_DIRECTORY}
 echo
 
 echo "Creating data with features for src-test"
-python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-test.txt ${TMP_DIRECTORY}/src-test${NAME_FEAT}.txt $FEATURE
+python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-test.txt ${TMP_DIRECTORY}/src-test${NAME_FEAT}.txt ${array_feat[@]}
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-test failed"
