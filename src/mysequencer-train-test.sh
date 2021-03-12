@@ -5,7 +5,7 @@ echo "mysequencer-train-test.sh start"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
 
-HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--steps=[int]] [--rm] [--checkpoint=[int]]
+HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--steps=[int]] [--rm] [--checkpoint=[int]] [--word2vec]
 indent: annotate data with indentation count
 tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tag
 number: number each word of each line of code starting with 0 at each new line
@@ -43,6 +43,10 @@ case $i in
     ;;
     --kmost)
     array_feat+=(kmost)
+    shift # past argument=value
+    ;;
+    --word2vec)
+    WORD2VEC="True"
     shift # past argument=value
     ;;
     *)
@@ -132,10 +136,24 @@ arr_num_feats=(${num_feat//-/ })
 NUM_FEAT_NAMES_VOCAB="${arr_num_feats[0]}"
 NUM_FEAT_NAMES_VOCAB=`echo "$NUM_FEAT_NAMES_VOCAB" | sed "s/'//g"`
 
+if [[ "$WORD2VEC" == "True" ]]; then
+  echo "Starting word2vec training"
+  python3 $CURRENT_DIR/features_utils/word2vec2torch.py --src $ROOT_DIR/results/Golden/src-train.txt --save_dict ${TMP_DIRECTORY}/src-train.dict --save_embed ${TMP_DIRECTORY}/word2vec_torch_embed.t7 --from_dict $ROOT_DIR/results/CodRep4/vocab.txt 
+  retval=$?
+  if [ $retval -ne 0 ]; then
+    echo "Creation of word2vec embeddings failed"
+    rm -rf ${TMP_DIRECTORY}
+    exit 1
+  fi
+  WORD2VEC_vocab="--src_vocab ${TMP_DIRECTORY}/src-train.dict"
+  WORD2VEC_embed="--pre_word_vecs_enc ${TMP_DIRECTORY}/word2vec_torch_embed.t7"
+  echo "done"
+  echo
+fi
 
 echo "Starting data preprocessing"
 cd $OpenNMT_py
-python3 preprocess.py -train_src ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab --numerical_feat_names "$NUM_FEAT_NAMES_VOCAB" -save_data ${TMP_DIRECTORY}/final${NAME_FEAT} 2>&1 > ${TMP_DIRECTORY}/preprocess.out
+python3 preprocess.py -train_src ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab $WORD2VEC_vocab --numerical_feat_names "$NUM_FEAT_NAMES_VOCAB" -save_data ${TMP_DIRECTORY}/final${NAME_FEAT} 2>&1 > ${TMP_DIRECTORY}/preprocess.out
 echo 
 
 NUM_FEAT_NAMES_EMBED="${arr_num_feats[1]}"
@@ -152,7 +170,7 @@ fi
 
 echo "Starting training of ${MODEL_FILE_NAME}"
 cd $OpenNMT_py
-python3 train.py -data ${TMP_DIRECTORY}/final${NAME_FEAT} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME --numerical_feat_names "$NUM_FEAT_NAMES_EMBED" > ${TMP_DIRECTORY}/train.final.out
+python3 train.py -data ${TMP_DIRECTORY}/final${NAME_FEAT} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME $WORD2VEC_embed --numerical_feat_names "$NUM_FEAT_NAMES_EMBED" > ${TMP_DIRECTORY}/train.final.out
 echo "train.sh complete" >> ${TMP_DIRECTORY}/train.out
 
 echo "Translating test set"
