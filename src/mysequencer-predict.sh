@@ -40,7 +40,7 @@ esac
 done
 
 if [ -z "$BUGGY_FILE_PATH" ]; then
-  BUGGY_FILE_PATH="/home/gildas/SequenceR/test.java"
+  BUGGY_FILE_PATH="$ROOT_DIR/test.java"
 elif [[ "$BUGGY_FILE_PATH" != /* ]]; then
   echo "BUGGY_FILE_PATH must be absolute path !"
   exit 1
@@ -55,7 +55,7 @@ if [ -z "$BEAM_SIZE" ]; then
 fi
 
 if [ -z "$OUTPUT" ]; then
-  OUTPUT="/home/gildas/SequenceR/test-results"
+  OUTPUT="$ROOT_DIR/test-results"
 elif [[ "$OUTPUT" != /* ]]; then
   echo "OUTPUT must be absolute path !"
   exit 1
@@ -176,4 +176,6 @@ echo
 echo "Found $(ls $OUTPUT | wc -l | awk '{print $1}') patches for $BUGGY_FILE_NAME stored in $OUTPUT"
 echo "sequencer-predict.sh done"
 echo
+cat $OUTPUT/*/*.java
+rm -rf $OUTPUT
 exit 0

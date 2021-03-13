@@ -5,6 +5,9 @@ echo "mysequencer-train-test.sh start"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
 
+export OpenNMT_py=$CURRENT_DIR/lib/OpenNMT-py
+export data_path=$ROOT_DIR/results/Golden
+
 HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--steps=[int]] [--rm] [--checkpoint=[int]] [--word2vec] [--fix_embedding]
 indent: annotate data with indentation count
 tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tag
