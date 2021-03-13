@@ -5,7 +5,7 @@ echo "mysequencer-test.sh start"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
 
-HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] --model=[path/to/model]
+HELP_MESSAGE=$'Usage: ./mysequencer-test --model=[path/to/model]
 indent: annotate data with indentation count
 tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tag
 number: number each word of each line of code starting with 0 at each new line
@@ -18,22 +18,6 @@ do
 case $i in
     --model=*)
     MODEL="${i#*=}"
-    shift # past argument=value
-    ;;
-    --indent)
-    array_feat+=(indent)
-    shift # past argument=value
-    ;;
-    --tag)
-    array_feat+=(tag)
-    shift # past argument=value
-    ;;
-    --number)
-    array_feat+=(number)
-    shift # past argument=value
-    ;;
-    --kmost)
-    array_feat+=(kmost)
     shift # past argument=value
     ;;
     *)
@@ -53,8 +37,13 @@ if [ -z "$MODEL" ]; then
   exit 1
 fi
 
-if [ -z "$KEEP_PRED" ]; then
-  KEEP_PRED="True"
+# Pre-processing arguments
+model_part="${MODEL#*final-model}"
+model_part="${model_part%_step*}"
+array_feat=(${model_part//-/ })
+
+if [[ "$MODEL" == */model.pt ]]; then
+  array_feat=()
 fi
 
 SAVE_IFS="$IFS"

@@ -2,28 +2,52 @@ import sys
 from gensim.models import Word2Vec
 import torch
 import argparse
+import numpy as np
 
+
+def prep_line(line, word_set):
+    out = ['<s>']
+    for i, word in enumerate(line):
+        if word in word_set:
+            out += [word]
+        else:
+            out += ['<unk>']
+        if word in ['{', '}', ';']:
+            out += ['</s>']
+            if i < (len(line) - 1):
+                out += ['<s>']
+        if out[-1] != '</s>':
+            out += ['</s>']
+    return out
 
 def main(args):
+        
     data = open(args.src, 'r').readlines()
     data = [line.split() for line in data]
-    model = Word2Vec(data, min_count=1, size=256, workers=3, window=5, sg=1)
+
     ## Getting words from previously built vocabulary
     word_list = []
     if args.from_dict:
         pre_dict = open(args.from_dict, 'r')
-        word_list = [ word.strip() for word in pre_dict.readlines() if word.strip() not in ['<unk>', '<blank>', '<s>', '</s>'] ]
-    else:
+        word_list = [ word.strip() for word in pre_dict.readlines() ]
+        word_set = set(word_list) - {'<unk>', '<blank>', '<s>', '</s>'}
+        data = [ prep_line(data_line, word_set) for data_line in data ]
+
+    model = Word2Vec(data, min_count=1, size=256, workers=3, window=5, sg=1)    
+
+    if not args.from_dict:
         word_list = model.wv.index2word[:1000]
+
     ## Saving dictionary
     if args.save_dict:
         w2v_dict = open(args.save_dict, 'w')
-        for idx, word in enumerate(word_list):
+        for idx, word in enumerate(word_list[4:]):
             w2v_dict.write(f"{word} {idx}\n")
         w2v_dict.close()
-    ## Saving embedding (torch style)
+
+    ## Saving embeddings (torch style)
     if args.save_embed:
-        w2v_emb = torch.FloatTensor([model.wv[word] for word in word_list])
+        w2v_emb = torch.FloatTensor([model.wv[word] if word != '<blank>' else np.zeros(256, dtype='float32') for word in word_list])
         torch.save(w2v_emb, args.save_embed)
     sys.exit(0)
 

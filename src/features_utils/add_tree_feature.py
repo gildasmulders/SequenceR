@@ -13,7 +13,7 @@ requiring_custom_embedding = []
 ### FEATURES
 
 def tag(word):
-    isVal = (word[0]=='"' and word[-1]=='"') or (word[0]=="'" and word[-1]=="'") or is_number(word) or (word in ['true', 'false'])
+    isVal = (len(word) > 0) and ((word[0]=='"' and word[-1]=='"') or (word[0]=="'" and word[-1]=="'") or is_number(word) or (word in ['true', 'false']))
     if word in KEYWORDS:
         return "￨" + 'k'
     elif word in SPECIAL_SYMBOLS:
