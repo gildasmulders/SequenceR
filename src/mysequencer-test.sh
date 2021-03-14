@@ -5,6 +5,9 @@ echo "mysequencer-test.sh start"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
 
+export OpenNMT_py=$CURRENT_DIR/lib/OpenNMT-py
+export data_path=$ROOT_DIR/results/Golden
+
 HELP_MESSAGE=$'Usage: ./mysequencer-test [--model=[path/to/model]]
 model: absolute path to model '
 
@@ -55,6 +58,9 @@ if [ ${#array_feat[@]} -gt 0 ]; then
   NAME_FEAT="-${NAME_FEAT}"
 fi
 
+if [[ "${array_feat[-1]}" == 'word2vec' ]]; then
+  unset array_feat[-1]
+fi
 
 TMP_DIRECTORY="$CURRENT_DIR/tmp"
 if [ -d ${TMP_DIRECTORY} ]; then

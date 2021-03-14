@@ -116,6 +116,23 @@ echo "Creating temporary working folder"
 mkdir -p ${TMP_DIRECTORY}
 echo
 
+if [[ "$WORD2VEC" == "True" ]]; then
+  NAME_FEAT="${NAME_FEAT}-word2vec"
+  echo "Starting word2vec training"
+  python3 $CURRENT_DIR/features_utils/word2vec2torch.py --src $ROOT_DIR/results/Golden/src-train.txt --save_dict ${TMP_DIRECTORY}/src-train.dict --save_embed ${TMP_DIRECTORY}/word2vec_torch_embed.t7 --from_dict $ROOT_DIR/results/CodRep4/vocab.txt 
+  retval=$?
+  if [ $retval -ne 0 ]; then
+    echo "Creation of word2vec embeddings failed"
+    rm -rf ${TMP_DIRECTORY}
+    exit 1
+  fi
+  WORD2VEC_vocab="--src_vocab ${TMP_DIRECTORY}/src-train.dict"
+  WORD2VEC_embed="--pre_word_vecs_enc ${TMP_DIRECTORY}/word2vec_torch_embed.t7"
+  echo "done"
+  echo
+fi
+
+
 echo "Creating data with features..."
 echo "for src-train"
 num_feat=`python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-train.txt ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt ${array_feat[@]}`
@@ -150,21 +167,6 @@ echo
 arr_num_feats=(${num_feat//-/ })
 NUM_FEAT_NAMES_VOCAB="${arr_num_feats[0]}"
 NUM_FEAT_NAMES_VOCAB=`echo "$NUM_FEAT_NAMES_VOCAB" | sed "s/'//g"`
-
-if [[ "$WORD2VEC" == "True" ]]; then
-  echo "Starting word2vec training"
-  python3 $CURRENT_DIR/features_utils/word2vec2torch.py --src $ROOT_DIR/results/Golden/src-train.txt --save_dict ${TMP_DIRECTORY}/src-train.dict --save_embed ${TMP_DIRECTORY}/word2vec_torch_embed.t7 --from_dict $ROOT_DIR/results/CodRep4/vocab.txt 
-  retval=$?
-  if [ $retval -ne 0 ]; then
-    echo "Creation of word2vec embeddings failed"
-    rm -rf ${TMP_DIRECTORY}
-    exit 1
-  fi
-  WORD2VEC_vocab="--src_vocab ${TMP_DIRECTORY}/src-train.dict"
-  WORD2VEC_embed="--pre_word_vecs_enc ${TMP_DIRECTORY}/word2vec_torch_embed.t7"
-  echo "done"
-  echo
-fi
 
 echo "Starting data preprocessing"
 cd $OpenNMT_py

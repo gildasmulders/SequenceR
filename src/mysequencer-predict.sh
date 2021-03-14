@@ -5,6 +5,9 @@ echo "mysequencer-predict.sh start"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
 
+export OpenNMT_py=$CURRENT_DIR/lib/OpenNMT-py
+export data_path=$ROOT_DIR/results/Golden
+
 HELP_MESSAGE=$'Usage: ./mysequencer-predict.sh [--buggy_file=[abs path]] [--buggy_line=[int]] [--beam_size=[int]] [--output=[abs path]] [--model=[abs/path/to/model]]
 buggy_file: Absolute path to the buggy file
 buggy_line: Line number of buggy line
