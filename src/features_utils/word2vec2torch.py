@@ -58,5 +58,6 @@ if __name__=="__main__":
     parser.add_argument("--save_dict", default=False)
     parser.add_argument("--save_embed", default=False)
     parser.add_argument("--from_dict", default=False)
+    parser.add_argument("--train_specials", default=True)
     args = parser.parse_args()
     main(args)
