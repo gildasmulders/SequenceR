@@ -6,4 +6,4 @@ __pycache__/
 results/Defects4J_patches
 src/Defects4J_Experiment
 src/lib/defects4j
-src/tmp/
+src/tmp*/
