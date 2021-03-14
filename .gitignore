@@ -5,3 +5,4 @@ __pycache__/
 .vscode/settings.json
 results/Defects4J_patches
 src/Defects4J_Experiment
+src/tmp/
