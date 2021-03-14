@@ -10,11 +10,14 @@ export data_path=$ROOT_DIR/results/Golden
 
 HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--steps=[int]] [--rm] [--checkpoint=[int]] [--word2vec] [--fix_embedding]
 indent: annotate data with indentation count
-tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tag
+tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tags
 number: number each word of each line of code starting with 0 at each new line
 kmost: tag each word with its rank of frequency 
+word2vec: use word2vec to create embeddings
+fix_embedding: if specified, the embeddings are frozen during training
 steps: nb of training steps to do (usual are 10000 or 20000)
-keep_model: boolean, whether we should keep the built model or not'
+checkpoint: nb of training steps after which we should save the model
+rm: if specified, the created model is removed at the end'
 
 array_feat=()
 for i in "$@"
@@ -54,6 +57,11 @@ case $i in
     ;;
     --fix_embedding)
     FIX_EMBED="--fix_word_vecs_enc"
+    shift # past argument=value
+    ;;
+    --help|-help|-h)
+    echo "$HELP_MESSAGE"
+    exit 0
     shift # past argument=value
     ;;
     *)

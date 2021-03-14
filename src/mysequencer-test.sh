@@ -5,11 +5,7 @@ echo "mysequencer-test.sh start"
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
 
-HELP_MESSAGE=$'Usage: ./mysequencer-test --model=[path/to/model]
-indent: annotate data with indentation count
-tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tag
-number: number each word of each line of code starting with 0 at each new line
-kmost: tag each word with its rank of frequency 
+HELP_MESSAGE=$'Usage: ./mysequencer-test [--model=[path/to/model]]
 model: absolute path to model '
 
 array_feat=()
@@ -19,6 +15,10 @@ case $i in
     --model=*)
     MODEL="${i#*=}"
     shift # past argument=value
+    ;;
+    --help|-help|-h)
+    echo "$HELP_MESSAGE"
+    exit 0
     ;;
     *)
           # unknown option

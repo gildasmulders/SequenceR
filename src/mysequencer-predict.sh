@@ -9,7 +9,8 @@ HELP_MESSAGE=$'Usage: ./mysequencer-predict.sh [--buggy_file=[abs path]] [--bugg
 buggy_file: Absolute path to the buggy file
 buggy_line: Line number of buggy line
 beam_size: Beam size used in seq2seq model
-output: Absolute path for output'
+output: Absolute path for output
+model: Absolute path to the model that should be used'
 for i in "$@"
 do
 case $i in
@@ -32,6 +33,10 @@ case $i in
     --model=*)
     MODEL="${i#*=}"
     shift # past argument=value
+    ;;
+    --help|-help|-h)
+    echo "$HELP_MESSAGE"
+    exit 0
     ;;
     *)
           # unknown option
