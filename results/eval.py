@@ -11,7 +11,8 @@ def main(argv):
             tot += 1
             if line in [x.strip() for x in predictions[line_index*50:line_index*50+50]]:
                 nb_right += 1
-    print(f"Correct patches: {nb_right}/{tot} ")
+    if nb_right > 0:
+        print(f"Correct patches: {nb_right}/{tot} ")
 
 if __name__=="__main__":
     main(sys.argv[1:])
