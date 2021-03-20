@@ -38,13 +38,18 @@ def indent(word):
 def number(word):
     toRet = toRet = "￨" + str(number.counter) 
     number.counter += 1
-    if word in ["{", "}", ";"]:
+    if word in ["{", "}", ";", "<END_BUG>"]:
         number.counter = 0    
     return toRet
 
 def kmost(word):   
     return "￨" + str(kmost.counter[word]) 
 
+def line_index(word):
+    toRet = toRet = "￨" + str(line_index.counter) 
+    if word in ["{", "}", ";", "<END_BUG>"]:
+        line_index.counter += 1    
+    return toRet
 
 ### MAIN
 
@@ -53,12 +58,13 @@ def main(argv):
     tokenized_lines_with_tree_feature = ""
     features = argv[2:]
     for i, feat in enumerate(features):
-        if feat in ['indent', 'number', 'kmost']:
+        if feat in ['indent', 'number', 'kmost', 'line_index']:
             numerical_feature(i, vocab=True)
         
     for line in tokenized_lines:
         indent.counter = 0
         number.counter = 0
+        line_index.counter = 0
         splitted_line = line.strip("\n").split(" ")
 
         if "kmost" in features:
@@ -117,6 +123,44 @@ def numerical_feature(i, vocab=False, embedding=True):
     if embedding:
         global requiring_custom_embedding
         requiring_custom_embedding.append(feat_name)
+
+def find_body(line):
+    def get_inc_count(count, word):
+        if word=="}":
+            count[0] -= 1
+        toRet = count[0]
+        if word=="{":
+            count[0] += 1    
+        return toRet
+    def find_match(line_to_p):
+        open_parentheses = 1
+        next_word = None
+        for word in reversed(line_to_p):
+            if open_parentheses == 0:
+                next_word = word
+                break
+            if word == "(":
+                open_parentheses -= 1
+            elif word == ")":
+                open_parentheses += 1
+        if next_word is not None and next_word not in ["if", "for", "while"]:
+            return True
+        return False
+        
+    count = [0]
+    counts = [ get_inc_count(count, word) for word in line ]
+    bug_index = line.index("<START_BUG>")
+    max_indent = None
+    for idx in range(bug_index, 2, -1):
+        if line[idx] == "{" and line[idx-1] == ")" and find_match(line[:idx-1]):
+            max_indent = counts[idx-2]
+            break
+    
+    if max_indent is not None:
+        return 0
+    return 0
+
+
 
 if __name__=="__main__":
     main(sys.argv[1:])
