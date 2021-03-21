@@ -14,19 +14,7 @@ requiring_custom_embedding = []
 ### FEATURES
 
 def tag(word):
-    isVal = (len(word) > 0) and ((word[0]=='"' and word[-1]=='"') or (word[0]=="'" and word[-1]=="'") or is_number(word) or (word in ['true', 'false']))
-    if word in KEYWORDS:
-        return "￨" + 'k'
-    elif word in SPECIAL_SYMBOLS:
-        return "￨" + 's'
-    elif word in OPERATORS:
-        return "￨" + 'o'
-    elif isVal: # Value
-        return "￨" + 'v'
-    elif word in ["<START_BUG>", "<END_BUG>"]: #delimiters
-        return "￨" + 'd'
-    else: # Identifier
-        return "￨" + 'i'
+    return "￨" + identify_tag(word)
 
 def indent(word):
     if word=="}":
@@ -37,19 +25,16 @@ def indent(word):
     return toRet
 
 def number(word):
-    toRet = "￨" + str(number.counter) 
+    toRet = "￨" + str(number.array[number.counter])    
     number.counter += 1
-    if word in ["{", "}", ";", "<END_BUG>"]:
-        number.counter = 0    
     return toRet
 
 def kmost(word):   
-    return "￨" + str(kmost.counter[word]) 
+    return "￨" + (str(kmost.counter[word]) if word in kmost.counter else str(-1) )
 
 def line_index(word):
-    toRet = "￨" + str(line_index.counter) 
-    if word in ["{", "}", ";", "<END_BUG>"]:
-        line_index.counter += 1    
+    toRet = "￨" + str(line_index.array[line_index.counter]) 
+    line_index.counter += 1    
     return toRet
 
 def distbug(word):
@@ -72,13 +57,24 @@ def main(argv):
         number.counter = 0
         line_index.counter = 0
         distbug.counter = 0
+
         splitted_line = line.strip("\n").split(" ")
 
-        if "kmost" in features:
-            tmp_counter = Counter(splitted_line)
+        if "kmost" in features:    
+            tmp_counter = Counter([word for word in splitted_line if identify_tag(word)=='i'])
             kmost.counter = { x[0]:(len(tmp_counter) - i) for i, x in enumerate(tmp_counter.most_common())}
         if "distbug" in features:
             distbug.array = make_distbug(splitted_line)
+        if "line_index" in features:
+            lidx = [0]
+            forcount = [-1]
+            startbug = [False]
+            line_index.array = [get_inc_line_index(lidx, word, forcount, startbug) for word in splitted_line ]
+        if "number" in features:
+            numcnt = [0]
+            forcount = [-1]
+            startbug = [False]
+            number.array = [get_inc_line_index(numcnt, word, forcount, startbug, True) for word in splitted_line ]
 
         new_line_with_tree_feature = ""
         for word in splitted_line:
@@ -97,8 +93,6 @@ def main(argv):
     tokenized_file_with_tree_feature.write(tokenized_lines_with_tree_feature)
     tokenized_file_with_tree_feature.close()
     print(requiring_vocab)
-    print("-")
-    print(requiring_custom_embedding)
     sys.exit(0)
 
 
@@ -124,16 +118,53 @@ def is_number(s):
  
     return False
 
-def numerical_feature(i, vocab=False, embedding=True):
+def numerical_feature(i, vocab=False):
     feat_name = 'src_feat_'+str(i)
     if vocab:
         global requiring_vocab
         requiring_vocab.append(feat_name)
-    if embedding:
-        global requiring_custom_embedding
-        requiring_custom_embedding.append(feat_name)
+
+def identify_tag(word):
+    isVal = (len(word) > 0) and ((word[0]=='"' and word[-1]=='"') or (word[0]=="'" and word[-1]=="'") or is_number(word) or (word in ['true', 'false']))
+    tag = 'i' #identifier
+    if word in KEYWORDS:
+        tag = 'k'
+    elif word in SPECIAL_SYMBOLS:
+        tag = 's'
+    elif word in OPERATORS:
+        tag = 'o'
+    elif isVal: # Value
+        tag = 'v'
+    elif word in ["<START_BUG>", "<END_BUG>"]: #delimiters
+        tag = 'd'
+    return tag
+
+def get_inc_line_index(line_index, word, forcounter, bugstart, number=False ):
+    toRet = line_index[0]
+    if number:
+        line_index[0] += 1
+    if forcounter[0] != -1:
+        if word == '(':
+            forcounter[0] += 1
+        elif word == ')':
+            forcounter[0] -= 1
+            if forcounter[0] == 0:
+                forcounter[0] = -1
+    elif word == "for":
+        forcounter[0] = 0
+
+    if forcounter[0] == -1 and ((not bugstart[0] and word in ["{", "}", ";", "<END_BUG>"]) or (bugstart[0] and word == "<END_BUG>")) :
+        bugstart[0] = False
+        if word == "<START_BUG>":
+            bugstart[0] = True
+        if number:
+            line_index[0] = 0
+        else:
+            line_index[0] += 1   
+    return toRet
 
 def make_distbug(line):
+
     def get_inc_count(count, word):
         if word=="}":
             count[0] -= 1
@@ -157,11 +188,6 @@ def make_distbug(line):
             return True
         return False
 
-    def get_inc_line_index(line_index, word):
-        toRet = line_index[0]
-        if word in ["{", "}", ";", "<END_BUG>"]:
-            line_index[0] += 1   
-        return toRet
     if len(line) == 0:
         return []
     count = [0]
@@ -177,7 +203,9 @@ def make_distbug(line):
             max_indent = indents[idx-2]
             break
     line_index = [0]
-    line_indexes = [ get_inc_line_index(line_index, word) for word in line ]
+    forcount = [-1]
+    startbug = [False]
+    line_indexes = [ get_inc_line_index(line_index, word, forcount, startbug) for word in line ]
     bug_line = line_indexes[bug_index]
     line_indexes = [ bug_line-x for x in line_indexes ]
     if max_indent is not None:

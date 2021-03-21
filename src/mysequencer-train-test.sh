@@ -8,7 +8,7 @@ ROOT_DIR="$(dirname "$CURRENT_DIR")"
 export OpenNMT_py=$CURRENT_DIR/lib/OpenNMT-py
 export data_path=$ROOT_DIR/results/Golden
 
-HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--line_index] [--dist2bug] [--steps=[int]] [--rm] [--checkpoint=[int]] [--word2vec] [--fix_embedding]
+HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--line_index] [--distbug] [--steps=[int]] [--rm] [--checkpoint=[int]] [--word2vec] [--fix_embedding]
 indent: annotate data with indentation count
 tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tags
 number: number each word of each line of code starting with 0 at each new line
@@ -172,16 +172,15 @@ if [ $retval -ne 0 ]; then
 fi
 echo
 
-arr_num_feats=(${num_feat//-/ })
-NUM_FEAT_NAMES_VOCAB="${arr_num_feats[0]}"
+NUM_FEAT_NAMES_VOCAB="$num_feat"
 NUM_FEAT_NAMES_VOCAB=`echo "$NUM_FEAT_NAMES_VOCAB" | sed "s/'//g"`
 
 echo "Starting data preprocessing"
 cd $OpenNMT_py
-python3 preprocess.py -train_src ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab $WORD2VEC_vocab --numerical_feat_names "$NUM_FEAT_NAMES_VOCAB" -save_data ${TMP_DIRECTORY}/final${NAME_FEAT} 2>&1 > ${TMP_DIRECTORY}/preprocess.out
+python3 preprocess.py -train_src ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab $WORD2VEC_vocab --numerical_feat_names "${NUM_FEAT_NAMES_VOCAB[@]}" -save_data ${TMP_DIRECTORY}/final${NAME_FEAT} 2>&1 > ${TMP_DIRECTORY}/preprocess.out
 echo 
 
-NUM_FEAT_NAMES_EMBED="${arr_num_feats[1]}"
+NUM_FEAT_NAMES_EMBED="$num_feat"
 NUM_FEAT_NAMES_EMBED=`echo "$NUM_FEAT_NAMES_EMBED" | sed "s/'//g"`
 
 MODEL_FILE_NAME="$ROOT_DIR/model/final-model${NAME_FEAT}"
@@ -195,7 +194,7 @@ fi
 
 echo "Starting training of ${MODEL_FILE_NAME}"
 cd $OpenNMT_py
-python3 train.py -data ${TMP_DIRECTORY}/final${NAME_FEAT} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME $FIX_EMBED $WORD2VEC_embed --numerical_feat_names "$NUM_FEAT_NAMES_EMBED" > ${TMP_DIRECTORY}/train.final.out
+python3 train.py -data ${TMP_DIRECTORY}/final${NAME_FEAT} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME $FIX_EMBED $WORD2VEC_embed --numerical_feat_names "${NUM_FEAT_NAMES_EMBED[@]}" > ${TMP_DIRECTORY}/train.final.out
 echo "train.sh complete" >> ${TMP_DIRECTORY}/train.out
 
 echo "Translating test set"
