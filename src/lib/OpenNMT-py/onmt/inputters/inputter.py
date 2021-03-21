@@ -315,8 +315,8 @@ def build_vocab(train_dataset_files, fields, data_type, share_vocab,
         src_vocab = None
 
     if len(numerical_feat_names) > 0:
-        min_val = -50
-        max_val = 1500
+        min_val = -1005
+        max_val = 1005
         for i, val in enumerate(range(min_val, max_val+1)):
             for feat in numerical_feat_names:
                 counters[feat][val] = 1 + max_val - min_val - i 

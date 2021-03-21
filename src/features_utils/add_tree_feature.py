@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 from collections import Counter
 
 
@@ -51,6 +52,11 @@ def line_index(word):
         line_index.counter += 1    
     return toRet
 
+def dist2bug(word):
+    toRet = dist2bug.array[dist2bug.counter]
+    dist2bug.counter += 1
+    return toRet
+
 ### MAIN
 
 def main(argv):
@@ -58,18 +64,21 @@ def main(argv):
     tokenized_lines_with_tree_feature = ""
     features = argv[2:]
     for i, feat in enumerate(features):
-        if feat in ['indent', 'number', 'kmost', 'line_index']:
+        if feat in ['indent', 'number', 'kmost', 'line_index', 'dist2bug']:
             numerical_feature(i, vocab=True)
         
     for line in tokenized_lines:
         indent.counter = 0
         number.counter = 0
         line_index.counter = 0
+        dist2bug.counter = 0
         splitted_line = line.strip("\n").split(" ")
 
         if "kmost" in features:
             tmp_counter = Counter(splitted_line)
             kmost.counter = { x[0]:(len(tmp_counter) - i) for i, x in enumerate(tmp_counter.most_common())}
+        if "dist2bug" in features:
+            dist2bug.array = make_dist2bug(splitted_line)
 
         new_line_with_tree_feature = ""
         for word in splitted_line:
@@ -124,7 +133,7 @@ def numerical_feature(i, vocab=False, embedding=True):
         global requiring_custom_embedding
         requiring_custom_embedding.append(feat_name)
 
-def find_body(line):
+def make_dist2bug(line):
     def get_inc_count(count, word):
         if word=="}":
             count[0] -= 1
@@ -132,6 +141,7 @@ def find_body(line):
         if word=="{":
             count[0] += 1    
         return toRet
+
     def find_match(line_to_p):
         open_parentheses = 1
         next_word = None
@@ -146,19 +156,30 @@ def find_body(line):
         if next_word is not None and next_word not in ["if", "for", "while"]:
             return True
         return False
-        
+
+    def get_inc_line_index(line_index, word):
+        toRet = line_index[0]
+        if word in ["{", "}", ";", "<END_BUG>"]:
+            line_index[0] += 1   
+        return toRet
+
     count = [0]
-    counts = [ get_inc_count(count, word) for word in line ]
+    indents = [ get_inc_count(count, word) for word in line ]
     bug_index = line.index("<START_BUG>")
     max_indent = None
     for idx in range(bug_index, 2, -1):
         if line[idx] == "{" and line[idx-1] == ")" and find_match(line[:idx-1]):
-            max_indent = counts[idx-2]
+            max_indent = indents[idx-2]
             break
-    
+    line_index = [0]
+    line_indexes = [ get_inc_line_index(line_index, word) for word in line ]
+    bug_line = line_indexes[bug_index]
+    line_indexes = [ bug_line-x for x in line_indexes ]
     if max_indent is not None:
-        return 0
-    return 0
+        num_arr = np.array(indents)
+        mask_arr = num_arr > max_indent
+        line_indexes = [ line_indexes[x] if mask_arr[x] else 1 for x in range(len(line_indexes)) ]
+    return line_indexes
 
 
 
