@@ -55,8 +55,8 @@ case $i in
     array_feat+=(line_index)
     shift # past argument=value
     ;;
-    --dist2bug)
-    array_feat+=(dist2bug)
+    --distbug)
+    array_feat+=(distbug)
     shift # past argument=value
     ;;
     --word2vec)

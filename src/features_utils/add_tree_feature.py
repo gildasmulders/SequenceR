@@ -52,9 +52,9 @@ def line_index(word):
         line_index.counter += 1    
     return toRet
 
-def dist2bug(word):
-    toRet = dist2bug.array[dist2bug.counter]
-    dist2bug.counter += 1
+def distbug(word):
+    toRet = distbug.array[distbug.counter]
+    distbug.counter += 1
     return toRet
 
 ### MAIN
@@ -64,21 +64,21 @@ def main(argv):
     tokenized_lines_with_tree_feature = ""
     features = argv[2:]
     for i, feat in enumerate(features):
-        if feat in ['indent', 'number', 'kmost', 'line_index', 'dist2bug']:
+        if feat in ['indent', 'number', 'kmost', 'line_index', 'distbug']:
             numerical_feature(i, vocab=True)
         
     for line in tokenized_lines:
         indent.counter = 0
         number.counter = 0
         line_index.counter = 0
-        dist2bug.counter = 0
+        distbug.counter = 0
         splitted_line = line.strip("\n").split(" ")
 
         if "kmost" in features:
             tmp_counter = Counter(splitted_line)
             kmost.counter = { x[0]:(len(tmp_counter) - i) for i, x in enumerate(tmp_counter.most_common())}
-        if "dist2bug" in features:
-            dist2bug.array = make_dist2bug(splitted_line)
+        if "distbug" in features:
+            distbug.array = make_distbug(splitted_line)
 
         new_line_with_tree_feature = ""
         for word in splitted_line:
@@ -133,7 +133,7 @@ def numerical_feature(i, vocab=False, embedding=True):
         global requiring_custom_embedding
         requiring_custom_embedding.append(feat_name)
 
-def make_dist2bug(line):
+def make_distbug(line):
     def get_inc_count(count, word):
         if word=="}":
             count[0] -= 1
