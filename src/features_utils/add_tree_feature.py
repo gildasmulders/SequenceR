@@ -166,7 +166,7 @@ def make_distbug(line):
         return []
     count = [0]
     indents = [ get_inc_count(count, word) for word in line ]
-    bug_index = len(line)/2
+    bug_index = len(line)//2
     if '<START_BUG>' in line:
         bug_index = line.index("<START_BUG>")
     elif '<END_BUG>' in line:
