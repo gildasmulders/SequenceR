@@ -166,7 +166,11 @@ def make_distbug(line):
         return []
     count = [0]
     indents = [ get_inc_count(count, word) for word in line ]
-    bug_index = line.index("<START_BUG>")
+    bug_index = len(line)/2
+    if '<START_BUG>' in line:
+        bug_index = line.index("<START_BUG>")
+    elif '<END_BUG>' in line:
+        bug_index = line.index("<END_BUG>")
     max_indent = None
     for idx in range(bug_index, 2, -1):
         if line[idx] == "{" and line[idx-1] == ")" and find_match(line[:idx-1]):
