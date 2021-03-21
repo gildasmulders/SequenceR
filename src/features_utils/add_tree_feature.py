@@ -37,7 +37,7 @@ def indent(word):
     return toRet
 
 def number(word):
-    toRet = toRet = "￨" + str(number.counter) 
+    toRet = "￨" + str(number.counter) 
     number.counter += 1
     if word in ["{", "}", ";", "<END_BUG>"]:
         number.counter = 0    
@@ -47,13 +47,13 @@ def kmost(word):
     return "￨" + str(kmost.counter[word]) 
 
 def line_index(word):
-    toRet = toRet = "￨" + str(line_index.counter) 
+    toRet = "￨" + str(line_index.counter) 
     if word in ["{", "}", ";", "<END_BUG>"]:
         line_index.counter += 1    
     return toRet
 
 def distbug(word):
-    toRet = distbug.array[distbug.counter]
+    toRet = "￨" + str(distbug.array[distbug.counter])
     distbug.counter += 1
     return toRet
 
