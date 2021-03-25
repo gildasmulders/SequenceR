@@ -19,6 +19,8 @@ steps: nb of training steps to do (usual are 10000 or 20000)
 checkpoint: nb of training steps after which we should save the model
 rm: if specified, the created model is removed at the end'
 
+ENC_TYPE="brnn"
+DEC_TYPE="rnn"
 array_feat=()
 for i in "$@"
 do
@@ -65,6 +67,11 @@ case $i in
     ;;
     --fix_embedding)
     FIX_EMBED="--fix_word_vecs_enc"
+    shift # past argument=value
+    ;;
+    --transformer)
+    ENC_TYPE="transformer"
+    DEC_TYPE="transformer"
     shift # past argument=value
     ;;
     --help|-help|-h)
@@ -194,7 +201,7 @@ fi
 
 echo "Starting training of ${MODEL_FILE_NAME}"
 cd $OpenNMT_py
-python3 train.py -data ${TMP_DIRECTORY}/final${NAME_FEAT} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME $FIX_EMBED $WORD2VEC_embed --numerical_feat_names "${NUM_FEAT_NAMES_EMBED[@]}" > ${TMP_DIRECTORY}/train.final.out
+python3 train.py -data ${TMP_DIRECTORY}/final${NAME_FEAT} -encoder_type "$ENC_TYPE" -enc_layers 2 -decoder_type "$DEC_TYPE" -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME $FIX_EMBED $WORD2VEC_embed --numerical_feat_names "${NUM_FEAT_NAMES_EMBED[@]}" > ${TMP_DIRECTORY}/train.final.out
 echo "train.sh complete" >> ${TMP_DIRECTORY}/train.out
 
 echo "Translating test set"
