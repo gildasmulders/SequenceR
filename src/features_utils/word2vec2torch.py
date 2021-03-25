@@ -33,7 +33,7 @@ def main(args):
         word_set = set(word_list) - {'<unk>', '<blank>', '<s>', '</s>'}
         data = [ prep_line(data_line, word_set) for data_line in data ]
 
-    model = Word2Vec(data, min_count=1, size=256, workers=3, window=5, sg=1)    
+    model = Word2Vec(data, min_count=1, size=256, workers=3, window=5, iter=15, sg=1)    
 
     if not args.from_dict:
         word_list = model.wv.index2word[:1000]

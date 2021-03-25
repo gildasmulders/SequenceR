@@ -8,20 +8,17 @@ ROOT_DIR="$(dirname "$CURRENT_DIR")"
 export OpenNMT_py=$CURRENT_DIR/lib/OpenNMT-py
 export data_path=$ROOT_DIR/results/Golden
 
-HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--line_index] [--distbug] [--steps=[int]] [--rm] [--checkpoint=[int]] [--word2vec] [--fix_embedding] [--transformer]
+HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--line_index] [--distbug] [--steps=[int]] [--rm] [--checkpoint=[int]] [--word2vec] [--fix_embedding]
 indent: annotate data with indentation count
 tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tags
 number: number each word of each line of code starting with 0 at each new line
 kmost: tag each word with its rank of frequency 
 word2vec: use word2vec to create embeddings
 fix_embedding: if specified, the embeddings are frozen during training
-transformer: use transformer instead of brnn-rnn
 steps: nb of training steps to do (usual are 10000 or 20000)
 checkpoint: nb of training steps after which we should save the model
 rm: if specified, the created model is removed at the end'
 
-ENC_TYPE="brnn"
-DEC_TYPE="rnn"
 array_feat=()
 for i in "$@"
 do
@@ -70,11 +67,6 @@ case $i in
     FIX_EMBED="--fix_word_vecs_enc"
     shift # past argument=value
     ;;
-    --transformer)
-    ENC_TYPE="transformer"
-    DEC_TYPE="transformer"
-    shift # past argument=value
-    ;;
     --help|-help|-h)
     echo "$HELP_MESSAGE"
     exit 0
@@ -100,8 +92,6 @@ IFS="$SAVE_IFS"
 if [ ${#array_feat[@]} -gt 0 ]; then
   NAME_FEAT="-${NAME_FEAT}"
 fi
-
-NAME_FEAT="-${ENC_TYPE}-${DEC_TYPE}${NAME_FEAT}"
 
 if [ -z "$STEPS" ]; then
   STEPS=10000
@@ -136,16 +126,16 @@ echo
 
 if [[ "$WORD2VEC" == "True" ]]; then
   NAME_FEAT="${NAME_FEAT}-word2vec"
-  echo "Starting word2vec training"
-  python3 $CURRENT_DIR/features_utils/word2vec2torch.py --src $ROOT_DIR/results/Golden/src-train.txt --save_dict ${TMP_DIRECTORY}/src-train.dict --save_embed ${TMP_DIRECTORY}/word2vec_torch_embed.t7 --from_dict $ROOT_DIR/results/CodRep4/vocab.txt 
-  retval=$?
-  if [ $retval -ne 0 ]; then
-    echo "Creation of word2vec embeddings failed"
-    rm -rf ${TMP_DIRECTORY}
-    exit 1
-  fi
-  WORD2VEC_vocab="--src_vocab ${TMP_DIRECTORY}/src-train.dict"
-  WORD2VEC_embed="--pre_word_vecs_enc ${TMP_DIRECTORY}/word2vec_torch_embed.t7"
+  # echo "Starting word2vec training"
+  # python3 $CURRENT_DIR/features_utils/word2vec2torch.py --src $ROOT_DIR/results/Golden/src-train.txt --save_dict ${TMP_DIRECTORY}/src-train.dict --save_embed ${TMP_DIRECTORY}/word2vec_torch_embed.t7 --from_dict $ROOT_DIR/results/CodRep4/vocab.txt 
+  # retval=$?
+  # if [ $retval -ne 0 ]; then
+  #   echo "Creation of word2vec embeddings failed"
+  #   rm -rf ${TMP_DIRECTORY}
+  #   exit 1
+  # fi
+  WORD2VEC_vocab="--src_vocab ${CURRENT_DIR}/features_utils/src-train.dict"
+  WORD2VEC_embed="--pre_word_vecs_enc ${CURRENT_DIR}/features_utils/word2vec_torch_embed.t7"
   echo "done"
   echo
 fi
@@ -204,7 +194,7 @@ fi
 
 echo "Starting training of ${MODEL_FILE_NAME}"
 cd $OpenNMT_py
-python3 train.py -data ${TMP_DIRECTORY}/final${NAME_FEAT} -encoder_type "$ENC_TYPE" -enc_layers 2 -decoder_type "$DEC_TYPE" -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME $FIX_EMBED $WORD2VEC_embed --numerical_feat_names "${NUM_FEAT_NAMES_EMBED[@]}" > ${TMP_DIRECTORY}/train.final.out
+python3 train.py -data ${TMP_DIRECTORY}/final${NAME_FEAT} -encoder_type brnn -enc_layers 2 -decoder_type rnn -dec_layers 2 -rnn_size 256 -global_attention general -batch_size 32 -word_vec_size 256 -bridge -copy_attn -reuse_copy_attn -train_steps ${STEPS} -gpu_ranks 0 -save_checkpoint_steps ${CHECK_STEPS} -save_model $MODEL_FILE_NAME $FIX_EMBED $WORD2VEC_embed --numerical_feat_names "${NUM_FEAT_NAMES_EMBED[@]}" > ${TMP_DIRECTORY}/train.final.out
 echo "train.sh complete" >> ${TMP_DIRECTORY}/train.out
 
 echo "Translating test set"
