@@ -100,6 +100,8 @@ if [ ${#array_feat[@]} -gt 0 ]; then
   NAME_FEAT="-${NAME_FEAT}"
 fi
 
+NAME_FEAT="${ENC_TYPE}-${DEC_TYPE}${NAME_FEAT}"
+
 if [ -z "$STEPS" ]; then
   STEPS=10000
 fi
