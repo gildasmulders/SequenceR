@@ -8,13 +8,14 @@ ROOT_DIR="$(dirname "$CURRENT_DIR")"
 export OpenNMT_py=$CURRENT_DIR/lib/OpenNMT-py
 export data_path=$ROOT_DIR/results/Golden
 
-HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--line_index] [--distbug] [--steps=[int]] [--rm] [--checkpoint=[int]] [--word2vec] [--fix_embedding]
+HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--line_index] [--distbug] [--steps=[int]] [--rm] [--checkpoint=[int]] [--word2vec] [--fix_embedding] [--transformer]
 indent: annotate data with indentation count
 tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tags
 number: number each word of each line of code starting with 0 at each new line
 kmost: tag each word with its rank of frequency 
 word2vec: use word2vec to create embeddings
 fix_embedding: if specified, the embeddings are frozen during training
+transformer: use transformer instead of brnn-rnn
 steps: nb of training steps to do (usual are 10000 or 20000)
 checkpoint: nb of training steps after which we should save the model
 rm: if specified, the created model is removed at the end'
@@ -100,7 +101,7 @@ if [ ${#array_feat[@]} -gt 0 ]; then
   NAME_FEAT="-${NAME_FEAT}"
 fi
 
-NAME_FEAT="${ENC_TYPE}-${DEC_TYPE}${NAME_FEAT}"
+NAME_FEAT="$-{ENC_TYPE}-${DEC_TYPE}${NAME_FEAT}"
 
 if [ -z "$STEPS" ]; then
   STEPS=10000

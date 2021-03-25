@@ -192,10 +192,10 @@ class Embeddings(nn.Module):
     def create_custom_features_embeddings(self, fields, numerical_feat_names=[]):
         if len(numerical_feat_names) > 0:
             feats_fields = [(j, fields['src' + "_feat_" + str(j)]) for j in numerical_feat_names]
-            trick_dict = {'<blank>':2.0, '<unk>':1.0}
+            trick_dict = {'<blank>':0.0, '<unk>':1.0}
             for i, ff in feats_fields:
                 vocab = ff.vocab.itos            
-                embedding_matrix = torch.FloatTensor([[0.0, float(x)] if (x!='<blank>' and x!='<unk>') else [trick_dict[x], 0.0] for x in vocab]) 
+                embedding_matrix = torch.FloatTensor([[1.0, float(x)] if (x!='<blank>' and x!='<unk>') else [0.0, trick_dict[x]] for x in vocab]) 
                 self.emb_luts[1+i].weight.data.copy_(embedding_matrix)    
                 self.emb_luts[1+i].weight.requires_grad = False
 
