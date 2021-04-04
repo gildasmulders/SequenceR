@@ -8,7 +8,7 @@ ROOT_DIR="$(dirname "$CURRENT_DIR")"
 export OpenNMT_py=$CURRENT_DIR/lib/OpenNMT-py
 export data_path=$ROOT_DIR/results/Golden
 
-HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--line_index] [--distbug] [--steps=[int]] [--rm] [--checkpoint=[int]] [--word2vec] [--fix_embedding]
+HELP_MESSAGE=$'Usage: ./mysequencer-train-test [--indent] [--tag] [--number] [--kmost] [--line_index] [--distbug] [--uniqueid] [--steps=[int]] [--rm] [--checkpoint=[int]] [--word2vec] [--fix_embedding]
 indent: annotate data with indentation count
 tag: annotate data with Keyword/Value/Delimiter/SpecialSymbol/Identifier/Operator tags
 number: number each word of each line of code starting with 0 at each new line
@@ -57,6 +57,10 @@ case $i in
     ;;
     --distbug)
     array_feat+=(distbug)
+    shift # past argument=value
+    ;;
+    --uniqueid)
+    array_feat+=(uniqueid)
     shift # past argument=value
     ;;
     --word2vec)

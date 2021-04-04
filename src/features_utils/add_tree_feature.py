@@ -35,6 +35,12 @@ def build_feats(features, splitted_line):
         forcount = [-1]
         startbug = [False]
         number.array = [get_inc_line_index(numcnt, word, forcount, startbug, True) for word in splitted_line ]
+    if "uniqueid" in features:
+        count = 1
+        uniqueid.dic = dict()
+        for token in sorted(set(splitted_line), key=lambda x: x.lower()):
+            uniqueid.dic[token] = count
+            count += 1
 
 def tag(word):
     return "￨" + identify_tag(word)
@@ -65,6 +71,9 @@ def distbug(word):
     distbug.counter += 1
     return toRet
 
+def uniqueid(word):
+    return "￨" + str(uniqueid.dic[word]) 
+
 ### MAIN
 
 def main(argv):
@@ -72,7 +81,7 @@ def main(argv):
     tokenized_lines_with_tree_feature = ""
     features = argv[2:]
     for i, feat in enumerate(features):
-        if feat in ['indent', 'number', 'kmost', 'line_index', 'distbug']:
+        if feat in ['indent', 'number', 'kmost', 'line_index', 'distbug', 'uniqueid']:
             numerical_feature(i, vocab=True)
         
     for line in tokenized_lines:    
