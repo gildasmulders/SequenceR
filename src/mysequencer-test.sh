@@ -56,11 +56,11 @@ IFS="$SAVE_IFS"
 
 if [ ${#array_feat[@]} -gt 0 ]; then
   NAME_FEAT="-${NAME_FEAT}"
+  if [[ "${array_feat[-1]}" == 'word2vec' ]]; then
+    unset array_feat[-1]
+  fi
 fi
 
-if [[ "${array_feat[-1]}" == 'word2vec' ]]; then
-  unset array_feat[-1]
-fi
 
 TMP_DIRECTORY="$CURRENT_DIR/tmp"
 if [ -d ${TMP_DIRECTORY} ]; then

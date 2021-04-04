@@ -4,7 +4,7 @@ import torch
 import argparse
 import numpy as np
 
-
+## This function inserts <s> and <\s> around each line so that word2vec learns an embedding for these tokens
 def prep_line(line, word_set):
     out = ['<s>']
     for i, word in enumerate(line):

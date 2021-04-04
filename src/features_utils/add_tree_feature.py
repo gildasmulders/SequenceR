@@ -8,10 +8,33 @@ from collections import Counter
 KEYWORDS = {'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'exports', 'extends', 'final', 'finally', 'float', 'for', 'goto', 'if', 'implements', 'import', 'instanceof', 'int', 'interface', 'long', 'module', 'native', 'new', 'open', 'opens', 'package', 'private', 'protected', 'provides', 'public', 'requires', 'return', 'short', 'static', 'strictfp', 'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'to', 'transient', 'transitive', 'try', 'uses', 'void', 'volatile', 'while', 'with'} 
 SPECIAL_SYMBOLS = {'[', ']', '(', ')', '{', '}', ',', ';', '@'}
 OPERATORS = {'*', '/', '+', '-', '%', '++', '--', '!', '=', '+=', '-=', '/=', '*=', '%=', '==', '!=', '<', '>', '<=', '>=', '&&', '||', '?', ':', '&', '|', '^', '~', '<<', '>>', '>>>', '&=', '^=', '|=', '<<=', '>>=', '>>>=', '.'}
+ASSIGNMENTS = {'=', '+=', '-=', '/=', '*=', '%=', '&=', '^=', '|=', '<<=', '>>=', '>>>='}
 requiring_vocab = []
 requiring_custom_embedding = []
 
 ### FEATURES
+
+def build_feats(features, splitted_line):
+    if "indent" in features:
+        indent.counter = 0
+    if "kmost" in features:    
+        tmp_counter = Counter([word for word in splitted_line if identify_tag(word)=='i'])
+        kmost.counter = { x[0]:(len(tmp_counter) - i) for i, x in enumerate(tmp_counter.most_common())}
+    if "distbug" in features:
+        distbug.counter = 0
+        distbug.array = make_distbug(splitted_line)
+    if "line_index" in features:
+        line_index.counter = 0
+        lidx = [0]
+        forcount = [-1]
+        startbug = [False]
+        line_index.array = [get_inc_line_index(lidx, word, forcount, startbug) for word in splitted_line ]
+    if "number" in features:
+        number.counter = 0
+        numcnt = [0]
+        forcount = [-1]
+        startbug = [False]
+        number.array = [get_inc_line_index(numcnt, word, forcount, startbug, True) for word in splitted_line ]
 
 def tag(word):
     return "￨" + identify_tag(word)
@@ -52,30 +75,9 @@ def main(argv):
         if feat in ['indent', 'number', 'kmost', 'line_index', 'distbug']:
             numerical_feature(i, vocab=True)
         
-    for line in tokenized_lines:
-        indent.counter = 0
-        number.counter = 0
-        line_index.counter = 0
-        distbug.counter = 0
-
+    for line in tokenized_lines:    
         splitted_line = line.strip("\n").split(" ")
-
-        if "kmost" in features:    
-            tmp_counter = Counter([word for word in splitted_line if identify_tag(word)=='i'])
-            kmost.counter = { x[0]:(len(tmp_counter) - i) for i, x in enumerate(tmp_counter.most_common())}
-        if "distbug" in features:
-            distbug.array = make_distbug(splitted_line)
-        if "line_index" in features:
-            lidx = [0]
-            forcount = [-1]
-            startbug = [False]
-            line_index.array = [get_inc_line_index(lidx, word, forcount, startbug) for word in splitted_line ]
-        if "number" in features:
-            numcnt = [0]
-            forcount = [-1]
-            startbug = [False]
-            number.array = [get_inc_line_index(numcnt, word, forcount, startbug, True) for word in splitted_line ]
-
+        build_feats(features, splitted_line)
         new_line_with_tree_feature = ""
         for word in splitted_line:
             toAdd = word
@@ -133,6 +135,8 @@ def identify_tag(word):
         tag = 's'
     elif word in OPERATORS:
         tag = 'o'
+    elif word in ASSIGNMENTS:
+        tag = 'a'
     elif isVal: # Value
         tag = 'v'
     elif word in ["<START_BUG>", "<END_BUG>"]: #delimiters
