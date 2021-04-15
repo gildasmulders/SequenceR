@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 from collections import Counter
+from Levenshtein import distance
 
 
 ### GLOBAL VARIABLES
@@ -36,11 +37,20 @@ def build_feats(features, splitted_line):
         startbug = [False]
         number.array = [get_inc_line_index(numcnt, word, forcount, startbug, True) for word in splitted_line ]
     if "uniqueid" in features:
-        count = 1
-        uniqueid.dic = dict()
-        for token in sorted(set(splitted_line), key=lambda x: x.lower()):
-            uniqueid.dic[token] = count
-            count += 1
+        # count = 1
+        # uniqueid.dic = dict()
+        # for token in sorted(set(splitted_line), key=lambda x: x.lower()):
+        #     uniqueid.dic[token] = count
+        #     count += 1
+        voc = sorted(set(splitted_line))
+        candidates = voc[1:]
+        ordered_list = [0]*len(voc)
+        ordered_list[0] = voc[0]
+        for idx in range(1, len(voc)):
+            chosen = min(candidates, key= lambda x: distance(x.lower(), ordered_list[idx-1].lower()))
+            candidates.remove(chosen)
+            ordered_list[idx] = chosen
+        uniqueid.dic = {x:i+1 for i, x in enumerate(ordered_list)}
 
 def tag(word):
     return "￨" + identify_tag(word)
