@@ -1,0 +1,1 @@
+public class Main { static void myStaticMethod ( ) { } public void myPublicMethod ( ) { } public static void main ( String [ ] args ) { Main . myStaticMethod ( ) ; Main myObj = new Main ( ) ; <START_BUG> myObje . myPublicMethod ( ) ; <END_BUG> } } 
