@@ -11,6 +11,6 @@
 #
 #SBATCH --output=sequencer_out.txt
 
-mysequencer-train-test.sh --uniqueid --checkpoint=10000 --steps=20000
+srun mysequencer-train-test.sh --uniqueid --checkpoint=10000 --steps=20000
 #srun mysequencer-test.sh --model=/home/ucl/ingi/muldersg/SequenceR/model/final-model-word2vec_step_10000.pt
 
