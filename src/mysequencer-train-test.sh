@@ -4,6 +4,7 @@ echo "mysequencer-train-test.sh start"
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
+SRC_DIR="$CURRENT_DIR/features_utils/recovered_data" # "$ROOT_DIR/results/Golden"
 
 export OpenNMT_py=$CURRENT_DIR/lib/OpenNMT-py
 export data_path=$ROOT_DIR/results/Golden
@@ -131,7 +132,7 @@ echo
 if [[ "$WORD2VEC" == "True" ]]; then
   NAME_FEAT="${NAME_FEAT}-word2vec"
   # echo "Starting word2vec training"
-  # python3 $CURRENT_DIR/features_utils/word2vec2torch.py --src $ROOT_DIR/results/Golden/src-train.txt --save_dict ${TMP_DIRECTORY}/src-train.dict --save_embed ${TMP_DIRECTORY}/word2vec_torch_embed.t7 --from_dict $ROOT_DIR/results/CodRep4/vocab.txt 
+  # python3 $CURRENT_DIR/features_utils/word2vec2torch.py --src $SRC_DIR/src-train.txt --save_dict ${TMP_DIRECTORY}/src-train.dict --save_embed ${TMP_DIRECTORY}/word2vec_torch_embed.t7 --from_dict $ROOT_DIR/results/CodRep4/vocab.txt 
   # retval=$?
   # if [ $retval -ne 0 ]; then
   #   echo "Creation of word2vec embeddings failed"
@@ -147,7 +148,7 @@ fi
 
 echo "Creating data with features..."
 echo "for src-train"
-num_feat=`python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-train.txt ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt ${array_feat[@]}`
+num_feat=`python3 $CURRENT_DIR/features_utils/add_tree_feature.py $SRC_DIR/src-train.txt ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt ${array_feat[@]}`
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-train failed"
@@ -157,7 +158,7 @@ fi
 echo
 
 echo "for src-val"
-num_feat=`python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-val.txt ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt ${array_feat[@]}`
+num_feat=`python3 $CURRENT_DIR/features_utils/add_tree_feature.py $SRC_DIR/src-val.txt ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt ${array_feat[@]}`
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-val failed"
@@ -167,7 +168,7 @@ fi
 echo
 
 echo "for src-test"
-num_feat=`python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-test.txt ${TMP_DIRECTORY}/src-test${NAME_FEAT}.txt ${array_feat[@]}`
+num_feat=`python3 $CURRENT_DIR/features_utils/add_tree_feature.py $SRC_DIR/src-test.txt ${TMP_DIRECTORY}/src-test${NAME_FEAT}.txt ${array_feat[@]}`
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-test failed"
@@ -181,7 +182,7 @@ NUM_FEAT_NAMES_VOCAB=`echo "$NUM_FEAT_NAMES_VOCAB" | sed "s/'//g"`
 
 echo "Starting data preprocessing"
 cd $OpenNMT_py
-python3 preprocess.py -train_src ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt -train_tgt $ROOT_DIR/results/Golden/tgt-train.txt -valid_src ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt -valid_tgt $ROOT_DIR/results/Golden/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab $WORD2VEC_vocab --numerical_feat_names "${NUM_FEAT_NAMES_VOCAB[@]}" -save_data ${TMP_DIRECTORY}/final${NAME_FEAT} 2>&1 > ${TMP_DIRECTORY}/preprocess.out
+python3 preprocess.py -train_src ${TMP_DIRECTORY}/src-train${NAME_FEAT}.txt -train_tgt $SRC_DIR/tgt-train.txt -valid_src ${TMP_DIRECTORY}/src-val${NAME_FEAT}.txt -valid_tgt $SRC_DIR/tgt-val.txt -src_seq_length 1010 -tgt_seq_length 100 -src_vocab_size 1000 -tgt_vocab_size 1000 -dynamic_dict -share_vocab $WORD2VEC_vocab --numerical_feat_names "${NUM_FEAT_NAMES_VOCAB[@]}" -save_data ${TMP_DIRECTORY}/final${NAME_FEAT} 2>&1 > ${TMP_DIRECTORY}/preprocess.out
 echo 
 
 NUM_FEAT_NAMES_EMBED="$num_feat"
@@ -207,7 +208,7 @@ python3 translate.py -model ${MODEL_FILE_NAME}_step_${STEPS}.pt -src ${TMP_DIREC
 echo
 
 echo "Evaluating obtained performances"
-python3 $ROOT_DIR/results/eval.py ${TMP_DIRECTORY}/pred-test_beam50${NAME_FEAT}.txt $ROOT_DIR/results/Golden/tgt-test.txt >> $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${STEPS}.txt
+python3 $ROOT_DIR/results/eval.py ${TMP_DIRECTORY}/pred-test_beam50${NAME_FEAT}.txt $SRC_DIR/tgt-test.txt >> $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${STEPS}.txt
 
 
 if [[ "$KEEP_MODEL" == "False" ]]; then
