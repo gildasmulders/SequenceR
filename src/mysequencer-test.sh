@@ -48,6 +48,10 @@ array_feat=(${model_part//-/ })
 
 if [[ "$MODEL" == */model.pt ]]; then
   array_feat=()
+  PERF_NAME=""
+else 
+  PERF_NAME=${MODEL#*step_}
+  PERF_NAME="${PERF_NAME%.pt}"
 fi
 
 SAVE_IFS="$IFS"
@@ -91,9 +95,8 @@ cd $OpenNMT_py
 python3 translate.py -model ${MODEL} -src ${TMP_DIRECTORY}/src-test${NAME_FEAT}.txt -beam_size 50 -n_best 50 -output ${TMP_DIRECTORY}/pred-test_beam50${NAME_FEAT}.txt -dynamic_dict 2>&1 > ${TMP_DIRECTORY}/translate50.out
 echo
 
-PERF_NAME=${MODEL#*step_}
 echo "Evaluating obtained performances"
-python3 $ROOT_DIR/results/eval.py ${TMP_DIRECTORY}/pred-test_beam50${NAME_FEAT}.txt $SRC_DIR/tgt-test.txt >> $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${PERF_NAME%.pt}.txt
+python3 $ROOT_DIR/results/eval.py ${TMP_DIRECTORY}/pred-test_beam50${NAME_FEAT}.txt $SRC_DIR/tgt-test.txt >> $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_$PERF_NAME.txt
 echo
 
 echo "Cleaning tmp folder"
@@ -101,7 +104,7 @@ rm -rf ${TMP_DIRECTORY}
 echo
 
 echo "RESULT"
-cat $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${PERF_NAME%.pt}.txt
+cat $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_$PERF_NAME.txt
 echo
 
 echo "mysequencer-test done"
