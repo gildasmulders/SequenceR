@@ -4,6 +4,7 @@ echo "mysequencer-test.sh start"
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="$(dirname "$CURRENT_DIR")"
+SRC_DIR="$CURRENT_DIR/features_utils/recovered_data" # "$ROOT_DIR/results/Golden"
 
 export OpenNMT_py=$CURRENT_DIR/lib/OpenNMT-py
 export data_path=$ROOT_DIR/results/Golden
@@ -76,7 +77,7 @@ mkdir -p ${TMP_DIRECTORY}
 echo
 
 echo "Creating data with features for src-test"
-python3 $CURRENT_DIR/features_utils/add_tree_feature.py $ROOT_DIR/results/Golden/src-test.txt ${TMP_DIRECTORY}/src-test${NAME_FEAT}.txt ${array_feat[@]}
+python3 $CURRENT_DIR/features_utils/add_tree_feature.py $SRC_DIR/src-test.txt ${TMP_DIRECTORY}/src-test${NAME_FEAT}.txt ${array_feat[@]}
 retval=$?
 if [ $retval -ne 0 ]; then
   echo "Creation of featured src-test failed"
@@ -92,7 +93,7 @@ echo
 
 PERF_NAME=${MODEL#*step_}
 echo "Evaluating obtained performances"
-python3 $ROOT_DIR/results/eval.py ${TMP_DIRECTORY}/pred-test_beam50${NAME_FEAT}.txt $ROOT_DIR/results/Golden/tgt-test.txt >> $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${PERF_NAME%.pt}.txt
+python3 $ROOT_DIR/results/eval.py ${TMP_DIRECTORY}/pred-test_beam50${NAME_FEAT}.txt $SRC_DIR/tgt-test.txt >> $ROOT_DIR/results/mysequencer/perf${NAME_FEAT}_${PERF_NAME%.pt}.txt
 echo
 
 echo "Cleaning tmp folder"
