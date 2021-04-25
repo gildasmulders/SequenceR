@@ -1,7 +1,27 @@
+import sys
+
 
 CFS = {"switch", "if", "for", "else", "for", "while", "do"}
 OPERATORS = {'*', '/', '+', '-', '%', '++', '--', '!', '=', '+=', '-=', '/=', '*=', '%=', '==', '!=', '<', '>', '<=', '>=', '&&', '||', '?', ':', '&', '|', '^', '~', '<<', '>>', '>>>', '&=', '^=', '|=', '<<=', '>>=', '>>>=', '.'}
 ASSIGNMENTS = {'=', '+=', '-=', '/=', '*=', '%=', '&=', '^=', '|=', '<<=', '>>=', '>>>='}
+
+def is_number(s):
+    if (len(s) > 1) and (s[-1] in ['f', 'F', 'd', 'D', 'l', 'L']):
+        s = s[:-1]
+    try:
+        float(s)
+        return True
+    except ValueError:
+        pass
+ 
+    try:
+        import unicodedata
+        unicodedata.numeric(s)
+        return True
+    except (TypeError, ValueError):
+        pass
+ 
+    return False
 
 def print_body(body, level=False, tag=False):
     toPrint = ""
@@ -381,7 +401,7 @@ class Simple_AST():
                             for case_el in cases_elems:
                                 case_el.body = Simple_AST.get_statements(case_el.body, level+2)              
                             
-                            statements.append(Switch_elem(var, cases, level))
+                            statements.append(Switch_elem(var, cases_elems, level))
                             new_statement = []
                             toRead = rest       
             elif token not in OPERATORS and token not in ASSIGNMENTS and len(toRead) > 0:
@@ -423,20 +443,35 @@ def find_match(line, end_symbol):
     return (s, remains)
 
 def remove_offset(code): 
-    def make_feat(feats):
-        if len(feats) == 0:
-            return ""
-        toRet = "￨"
-        toRet += "￨".join(feats)
-        return toRet
     code = code.split()
-    try:
-        features = [int(token.split("￨")[1]) for token in code]
-    except IndexError:
-        print(f"Round token without feature")
-    min_feat = min(features)
-    code = [code[i].split("￨")[0]+"￨"+str(features[i]-min_feat+1)+make_feat(code[i].split()[2:]) for i in range(len(code))]
-    return " ".join(code)
+    first_token = code[0].split("￨")
+    num_indexes = []
+    mins = []
+    for feat_idx in range(1, len(first_token)):
+        if is_number(first_token[feat_idx]):
+            num_indexes.append(feat_idx)
+            mins.append(int(first_token[feat_idx]))
+
+    for token in code:
+        tok_feats = token.split("￨")
+        for idx_num_idx in range(len(num_indexes)):
+            try:
+                ft_val = int(tok_feats[num_indexes[idx_num_idx]])
+                if ft_val < mins[idx_num_idx]:
+                    mins[idx_num_idx] = ft_val
+            except IndexError:
+                print(f"Found token without feature")
+                sys.exit(1)
+
+    newcode = []
+    for token in code:
+        tok_feats = token.split("￨")
+        for idx_num_idx in range(len(num_indexes)):
+            tok_feats[num_indexes[idx_num_idx]] = str(int(tok_feats[num_indexes[idx_num_idx]]) - mins[idx_num_idx] + 1)
+        newcode.append("￨".join(tok_feats))
+    return " ".join(newcode) + "\n"
+
+
 
 if __name__=="__main__":
     code = "public class Main { static void myStaticMethod ( ) { } public void myPublicMethod ( ) { } public static void main ( String [ ] args ) { if ( 3 < 4 ) Main . myStaticMethod ( ) ; Main myObj = new Main ( ) ; <START_BUG> myObje . myPublicMethod ( ) ; <END_BUG> } }"

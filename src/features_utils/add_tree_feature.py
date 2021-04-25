@@ -90,9 +90,17 @@ def main(argv):
     tokenized_lines = open(argv[0], 'r').readlines()
     tokenized_lines_with_tree_feature = ""
     features = argv[2:]
+    offset_feat = 0
+    if 'level' in features:
+        numerical_feature(0, vocab=True)
+        offset_feat += 1
+        features.remove('level')
+    if 'tag' in features:
+        offset_feat += 1
+        features.remove('tag')
     for i, feat in enumerate(features):
         if feat in ['indent', 'number', 'kmost', 'line_index', 'distbug', 'uniqueid']:
-            numerical_feature(i, vocab=True)
+            numerical_feature(offset_feat + i, vocab=True)
         
     for line in tokenized_lines:    
         splitted_line = line.strip("\n").split(" ")
@@ -100,7 +108,7 @@ def main(argv):
         new_line_with_tree_feature = ""
         for word in splitted_line:
             toAdd = word
-            for feature in features:                
+            for feature in features:   
                 try:
                     toAdd += globals()[feature](word)
                 except KeyError:

@@ -42,6 +42,7 @@ case $i in
     ;;
     --tag)
     array_feat+=(tag)
+    tag_bool=true
     shift # past argument=value
     ;;
     --number)
@@ -64,6 +65,11 @@ case $i in
     array_feat+=(uniqueid)
     shift # past argument=value
     ;;
+    --level)
+    array_feat+=(level)
+    level_bool=true
+    shift # past argument=value
+    ;;
     --word2vec)
     WORD2VEC="True"
     shift # past argument=value
@@ -82,6 +88,20 @@ case $i in
     ;;
 esac
 done
+
+if [ "$tag_bool" = true ]; then
+  if [ "$level_bool" = true ]; then
+    SRC_DIR="$CURRENT_DIR/features_utils/recovered_data/both"
+  else
+    SRC_DIR="$CURRENT_DIR/features_utils/recovered_data/tag"
+  fi
+else
+  if [ "$level_bool" = true ]; then
+    SRC_DIR="$CURRENT_DIR/features_utils/recovered_data/level"
+  else
+    SRC_DIR="$CURRENT_DIR/features_utils/recovered_data/"
+  fi
+fi
 
 if [ ! -f $OpenNMT_py/preprocess.py ]; then
   echo "OpenNMT_py environment variable should be set"

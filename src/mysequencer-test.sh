@@ -20,6 +20,14 @@ case $i in
     MODEL="${i#*=}"
     shift # past argument=value
     ;;
+    --level)
+    level_bool=true
+    shift # past argument=value
+    ;;
+    --tag)
+    tag_bool=true
+    shift # past argument=value
+    ;;
     --help|-help|-h)
     echo "$HELP_MESSAGE"
     exit 0
@@ -29,6 +37,20 @@ case $i in
     ;;
 esac
 done
+
+if [ "$tag_bool" = true ]; then
+  if [ "$level_bool" = true ]; then
+    SRC_DIR="$CURRENT_DIR/features_utils/recovered_data/both"
+  else
+    SRC_DIR="$CURRENT_DIR/features_utils/recovered_data/tag"
+  fi
+else
+  if [ "$level_bool" = true ]; then
+    SRC_DIR="$CURRENT_DIR/features_utils/recovered_data/level"
+  else
+    SRC_DIR="$CURRENT_DIR/features_utils/recovered_data/"
+  fi
+fi
 
 if [ ! -f $OpenNMT_py/preprocess.py ]; then
   echo "OpenNMT_py environment variable should be set"
