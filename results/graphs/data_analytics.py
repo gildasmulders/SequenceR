@@ -34,6 +34,96 @@ def rewrite_tgt(path_to_here, path_to_src, path_to_tgt, path_to_voc):
         for line in new_tgt:
             new_tgt_file.write(line + "\n")
     
+def get_easy_accuracy(path_to_here, path_to_src, path_to_tgt, path_to_voc, len_thresh, edist_tresh):
+    path_to_pred = os.path.join(path_to_here, "../Golden/pred-test-golden_beam50.txt")
+
+    ## GETTING GOLDEN TEST PRED
+    pred_lines = []
+    with open(path_to_pred, 'r') as pred_file:    
+        pred_lines = pred_file.readlines()
+
+    ## GETTING SRC TEST
+    src_lines = []    
+    with open(path_to_src, 'r') as src_file:
+        src_lines = src_file.readlines()
+    
+    ## GETTING TGT TEST 
+    tgt_lines = []
+    with open(path_to_tgt, 'r') as tgt_file:    
+        tgt_lines = tgt_file.readlines()
+
+    ## GETTING VOC
+    voc = set()
+    with open(path_to_voc, 'r') as voc_file:    
+        voc = set([tok.strip() for tok in voc_file.readlines()])
+
+    line_idxes = list(range(len(tgt_lines)))
+    ## REMOVING ALL "HARD" CASES
+    for idx in range(len(tgt_lines)):
+        ## REMOVING IDX OF IMPOSSIBLE TO PREDICT SAMPLES (OOV PROBLEM)
+        removed = False
+        src_voc = set(src_lines[idx].split())
+        for token in tgt_lines[idx].split():
+            if token not in voc and token not in src_voc:
+                line_idxes.remove(idx)
+                removed = True            
+                break
+        if not removed:
+            line = src_lines[idx]
+            splitted_line = line.split()
+            if "<START_BUG>" in splitted_line and "<END_BUG>" in splitted_line:
+                start_idx = splitted_line.index("<START_BUG>")
+                end_idx = splitted_line.index("<END_BUG>")
+                bug_length = end_idx-start_idx - 1
+                ## REMOVING BUGGY LINES WITH MORE THAN 30 TOKENS
+                if bug_length > len_thresh:
+                    line_idxes.remove(idx)
+                    removed = True
+                else:
+                    ## REMOVING BUGGY LINES WITH AN EDIT DISTANCE BIGGER THAN 15
+                    bug = splitted_line[start_idx+1:end_idx]
+                    tgt = tgt_lines[idx].split()
+                    edit_dist = levenshtein(bug, tgt)
+                    if edit_dist > edist_tresh:
+                        line_idxes.remove(idx)
+            else:
+                line_idxes.remove(idx)
+    
+    tot_count = 0
+    good_count = 0
+    for easy_idx in line_idxes:
+        if len(tgt_lines[easy_idx]) > 0:
+            tot_count += 1
+            if tgt_lines[easy_idx].strip() in [line.strip() for line in pred_lines[easy_idx*50:easy_idx*50+50]]:
+                good_count += 1
+    #print(f"Easy Accuracy: {good_count}/{tot_count}")
+    return good_count, tot_count
+
+def easier_data_graphs(path_to_here, path_to_src, path_to_tgt, path_to_voc):
+    len_threshs = range(10,100, 2)
+    len_accs = [[0, 0] for _ in range(len(len_threshs))]
+    edist_threshs = range(1, 30)
+    edist_accs = [[0, 0] for _ in range(len(edist_threshs))]
+    
+    for x in range(len(edist_threshs)):
+        edist_accs[x][0], edist_accs[x][1] = get_easy_accuracy(path_to_here, path_to_src, path_to_tgt, path_to_voc, 10000 , edist_threshs[x]) 
+    
+    plt.xlabel("Edit distance between the buggy line and its fix")
+    plt.plot(edist_threshs, [(x1*1.0)/(x2*1.0) for x1, x2 in edist_accs], 'b') 
+    plt.ylabel("Accuracy", color="b")
+    plt.tick_params(axis="y", labelcolor='b')
+    plt.twinx()
+    plt.plot(edist_threshs, [x[1] for x in edist_accs], 'r')
+    plt.ylabel("Total number of samples", color="r")
+    plt.tick_params(axis="y", labelcolor='r')
+    plt.title("Effect of the edit distance on the accuracy of the Golden model")
+    
+    
+    plt.savefig("Effect of the edit distance on the accuracy of the Golden model.png")
+
+    print("Done")
+            
+
 
 
 ### OOV ###
@@ -280,6 +370,7 @@ if __name__=='__main__':
     path_to_voc = os.path.join(path_to_here, "../CodRep4/vocab.txt")
     path_to_src = os.path.join(path_to_here, "../Golden/src-test.txt")
     path_to_tgt = os.path.join(path_to_here, "../Golden/tgt-test.txt")
+    #path_to_tgt = os.path.join(path_to_here, "../tgt-test_unks.txt")
     path_to_train = os.path.join(path_to_here, "../Golden/src-train.txt")
     parser = argparse.ArgumentParser()
     parser.add_argument("-unk", action='store_true', default=False)
@@ -288,6 +379,8 @@ if __name__=='__main__':
     parser.add_argument("-type", action='store_true', default=False)
     parser.add_argument("-buglen", action='store_true', default=False)
     parser.add_argument("-difflen", action='store_true', default=False)
+    parser.add_argument("-easy_acc", action='store_true', default=False)
+    parser.add_argument("-easy_graphs", action='store_true', default=False)
     args = parser.parse_args()
     if args.oov:
         oov(path_to_src, path_to_tgt, path_to_train)
@@ -301,5 +394,9 @@ if __name__=='__main__':
         get_buggy_line_length(path_to_src)
     elif args.difflen:
         get_line_fix_diff(path_to_src, path_to_tgt)
+    elif args.easy_acc:
+        get_easy_accuracy(path_to_here, path_to_src, path_to_tgt, path_to_voc, 30, 15)
+    elif args.easy_graphs:
+        easier_data_graphs(path_to_here, path_to_src, path_to_tgt, path_to_voc)
     else:
         print("Please use either one of these tags: -unk -oov -rewrite")
