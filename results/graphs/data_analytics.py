@@ -75,12 +75,12 @@ def get_easy_accuracy(path_to_here, path_to_src, path_to_tgt, path_to_voc, len_t
                 start_idx = splitted_line.index("<START_BUG>")
                 end_idx = splitted_line.index("<END_BUG>")
                 bug_length = end_idx-start_idx - 1
-                ## REMOVING BUGGY LINES WITH MORE THAN 30 TOKENS
+                ## REMOVING BUGGY LINES WITH MORE THAN len_thresh TOKENS
                 if bug_length > len_thresh:
                     line_idxes.remove(idx)
                     removed = True
                 else:
-                    ## REMOVING BUGGY LINES WITH AN EDIT DISTANCE BIGGER THAN 15
+                    ## REMOVING BUGGY LINES WITH AN EDIT DISTANCE BIGGER THAN edit_thresh
                     bug = splitted_line[start_idx+1:end_idx]
                     tgt = tgt_lines[idx].split()
                     edit_dist = levenshtein(bug, tgt)
@@ -100,26 +100,46 @@ def get_easy_accuracy(path_to_here, path_to_src, path_to_tgt, path_to_voc, len_t
     return good_count, tot_count
 
 def easier_data_graphs(path_to_here, path_to_src, path_to_tgt, path_to_voc):
-    len_threshs = range(10,100, 2)
+    len_threshs = range(10,100, 5)
     len_accs = [[0, 0] for _ in range(len(len_threshs))]
-    edist_threshs = range(1, 30)
+    edist_threshs = range(30, 1, -1)
     edist_accs = [[0, 0] for _ in range(len(edist_threshs))]
     
-    for x in range(len(edist_threshs)):
-        edist_accs[x][0], edist_accs[x][1] = get_easy_accuracy(path_to_here, path_to_src, path_to_tgt, path_to_voc, 10000 , edist_threshs[x]) 
+    len_threshs, edist_threshs = np.meshgrid(len_threshs, edist_threshs)
+    # z = [[[0, 0] for _ in range(len(len_threshs_line))] for len_threshs_line in len_threshs]
+    z = len_threshs + edist_threshs
+    for idx in tqdm(range(len(range(10,100, 5)))):
+        for idy in range(len(range(30, 1, -1))):
+            a, b = get_easy_accuracy(path_to_here, path_to_src, path_to_tgt, path_to_voc, len_threshs[idy][idx] , edist_threshs[idy][idx])
+            z[idy][idx] = (a*100.0)/(b*1.0)
+    # for x in range(len(len_threshs)):
+    #     len_accs[x][0], len_accs[x][1] = get_easy_accuracy(path_to_here, path_to_src, path_to_tgt, path_to_voc, len_threshs[x] , 10000) 
     
-    plt.xlabel("Edit distance between the buggy line and its fix")
-    plt.plot(edist_threshs, [(x1*1.0)/(x2*1.0) for x1, x2 in edist_accs], 'b') 
-    plt.ylabel("Accuracy", color="b")
-    plt.tick_params(axis="y", labelcolor='b')
-    plt.twinx()
-    plt.plot(edist_threshs, [x[1] for x in edist_accs], 'r')
-    plt.ylabel("Total number of samples", color="r")
-    plt.tick_params(axis="y", labelcolor='r')
-    plt.title("Effect of the edit distance on the accuracy of the Golden model")
+    # plt.xlabel("Maximum buggy line length (# of tokens)")
+    # plt.plot(len_threshs, [(x1*100.0)/(x2*1.0) for x1, x2 in len_accs], 'b') 
+    # plt.ylabel("Accuracy on the test set [%]", color="b")
+    # plt.tick_params(axis="y", labelcolor='b')
+    # plt.twinx()
+    # plt.plot(len_threshs, [x[1] for x in len_accs], 'r')
+    # plt.ylabel("Total number of samples", color="r")
+    # plt.tick_params(axis="y", labelcolor='r')
+    # plt.title("Effect of the buggy line length on the accuracy of the Golden model")
     
     
-    plt.savefig("Effect of the edit distance on the accuracy of the Golden model.png")
+    # plt.savefig("Effect of the buggy line length on the accuracy of the Golden model.png")
+
+
+    ax = plt.axes(projection='3d')
+    ax.plot_surface(len_threshs, edist_threshs, z, cmap='viridis') 
+    #ax.invert_yaxis()
+    ax.set_ylim(30, 0)
+    ax.set_ylabel("Edit distance")
+    ax.set_xlabel("Buggy line length")
+    ax.set_zlabel("Accuracy [%]", color="b")
+    ax.tick_params(axis="z", labelcolor='b')
+    #ax.set_title("Effect of the edit distance and the buggy line length on the accuracy")
+    
+    plt.savefig("Effect of the edit distance and the buggy line length on the accuracy.png")
 
     print("Done")
             
@@ -150,9 +170,9 @@ def oov(path_to_src, path_to_tgt, path_to_train):
     tgt_lines_lower = [line.lower() for line in tgt_lines]    
 
     ## GETTING OOV values for range of voc_sizes
-    voc_sizes = range(0, len(most_commons), 250)
+    #voc_sizes = range(0, len(most_commons), 250)
     #voc_sizes = range(0, 5000, 25)
-    #voc_sizes = [10**i for i in range(0,8)]
+    voc_sizes = [10**(i//2) for i in range(0,16)]
     imposs_list = [0] * len(voc_sizes)
     imposs_list_lower = [0] * len(voc_sizes)
 
@@ -171,19 +191,33 @@ def oov(path_to_src, path_to_tgt, path_to_train):
     plt.plot(voc_sizes[our_voc_idx[0]], [round((float(imposs_list[our_voc_idx[0]])/float(tot_nb))*100, 2)], 'bo')
     plt.plot(voc_sizes, [round((float(imp_nb)/float(tot_nb))*100, 2) for imp_nb in imposs_list_lower], 'r', label="To lower case")
     plt.plot(voc_sizes[our_voc_idx[0]], [round((float(imposs_list_lower[our_voc_idx[0]])/float(tot_nb))*100, 2)], 'ro')
-    #plt.xscale('log')
+    plt.xscale('log')
     plt.axvline(1000)
     #xticks_vals = list(range(0, 20000, 2500)) + [1000]
     #plt.xticks(xticks_vals)
-    plt.title("Effect of the vocabulary size on the OOV problem")
+    #plt.title("Effect of the vocabulary size on the OOV problem")
     plt.xlabel("Vocabulary size [# of types]")
     plt.ylabel("Unpredictable samples [% of the full test set]")
     plt.legend()
-    plt.savefig("Effect of the vocabulary size on the OOV problem.png")
+    plt.savefig("Effect of the vocabulary size on the OOV problem_log_untitled.png")
 
     print("Done")
     #print(f"There are {impossible_nb}/{tot_nb} ({round((float(impossible_nb)/float(tot_nb))*100, 2)}%) samples impossible to predict due to OOV tokens")
 
+def imp_cnt(voc_path, src_path, tgt_path):
+    src_lines = []    
+    with open(src_path, 'r') as src_file:
+        src_lines = src_file.readlines()
+
+    tgt_lines = []    
+    with open(tgt_path, 'r') as tgt_file:
+        tgt_lines = tgt_file.readlines()
+
+    voc = set()
+    with open(voc_path, 'r') as voc_file:    
+        voc = set([tok.strip() for tok in voc_file.readlines()])
+
+    print(get_impossible_count(voc, src_lines, tgt_lines))
 
 def get_impossible_count(voc, src_lines, tgt_lines):   
     len_files = len(src_lines)
@@ -236,11 +270,11 @@ def unk(path_to_src, path_to_train):
     #plt.xscale('log')
     plt.axvline(1000)
     plt.ylim(0, 100)
-    plt.title("Vocabulary size vs <unk> percentage in the input")
+    #plt.title("Vocabulary size vs <unk> percentage in the input")
     plt.xlabel("Vocabulary size [# of types]")
     plt.ylabel("Mean percentage of <unk> [% of abstract buggy context]")
     #plt.legend()
-    plt.savefig("Vocabulary size vs <unk> percentage in the input_zoom.png")
+    plt.savefig("Vocabulary size vs <unk> percentage in the input_zoom_untitled.png")
 
     print("Done")
 
@@ -299,14 +333,14 @@ def get_buggy_line_length(path_to_src):
             end_idx = splitted_line.index("<END_BUG>")
             bug_lengths.append(end_idx-start_idx - 1)
     
-    plt.figure(figsize=(16, 9), dpi=200)
+    #plt.figure(figsize=(16, 9), dpi=200)
     plt.hist(bug_lengths, bins=range(0, 100, 1), align='left', rwidth=0.5)
-    plt.xticks(range(0, 100,5))
+    plt.xticks(range(0, 100,20))
     plt.xlim(0, 100)
-    plt.xlabel("Nb of tokens")
+    plt.xlabel("Length of the buggy line (# of tokens)")
     plt.ylabel("Nb of samples")
-    plt.title("Number of token in the test buggy lines")
-    plt.savefig("Number of token in the test buggy lines.png")
+    #plt.title("Lengths in tokens of the test buggy lines")
+    plt.savefig("Lengths in tokens of the test buggy lines_untitled.png")
 
 
 ## EDIT DISTANCES BETWEEN BUGS AND FIXES
@@ -330,14 +364,14 @@ def get_line_fix_diff(path_to_src, path_to_tgt):
             tgt = tgt_lines[line_idx].split()
             diff_lengths.append(levenshtein(bug, tgt))
     
-    plt.figure(figsize=(16, 9), dpi=200)
+    #plt.figure(figsize=(16, 9), dpi=200)
     plt.hist(diff_lengths, bins=range(0, 30, 1), align='left', rwidth=0.5)
-    plt.xticks(range(0, 30, 5))
-    plt.xlim(0, 30)
-    plt.xlabel("Nb of tokens")
+    #plt.xticks(range(0, 30, 5))
+    plt.xlim(0, 25)
+    plt.xlabel("Edit distance (# of tokens)")
     plt.ylabel("Nb of samples")
-    plt.title("Difference in the number of tokens between the buggy and the fixed line")
-    plt.savefig("Difference in the number of tokens between the buggy and the fixed line.png")
+    #plt.title("Token-level edit distance between the buggy and the fixed line")
+    plt.savefig("Token-level edit distance between the buggy and the fixed line_untitled.png")
 
 def levenshtein(seq1, seq2):
     size_x = len(seq1) + 1
@@ -372,6 +406,7 @@ if __name__=='__main__':
     path_to_tgt = os.path.join(path_to_here, "../Golden/tgt-test.txt")
     #path_to_tgt = os.path.join(path_to_here, "../tgt-test_unks.txt")
     path_to_train = os.path.join(path_to_here, "../Golden/src-train.txt")
+    path_to_tgt_train = os.path.join(path_to_here, "../Golden/tgt-train.txt")
     parser = argparse.ArgumentParser()
     parser.add_argument("-unk", action='store_true', default=False)
     parser.add_argument("-oov", action='store_true', default=False)
@@ -381,6 +416,7 @@ if __name__=='__main__':
     parser.add_argument("-difflen", action='store_true', default=False)
     parser.add_argument("-easy_acc", action='store_true', default=False)
     parser.add_argument("-easy_graphs", action='store_true', default=False)
+    parser.add_argument("-imp_cnt", action='store_true', default=False)
     args = parser.parse_args()
     if args.oov:
         oov(path_to_src, path_to_tgt, path_to_train)
@@ -395,8 +431,11 @@ if __name__=='__main__':
     elif args.difflen:
         get_line_fix_diff(path_to_src, path_to_tgt)
     elif args.easy_acc:
-        get_easy_accuracy(path_to_here, path_to_src, path_to_tgt, path_to_voc, 30, 15)
+        #print(get_easy_accuracy(path_to_here, path_to_src, path_to_tgt, path_to_voc, 30, 15))
+        print(get_easy_accuracy(path_to_here, path_to_src, path_to_tgt, path_to_voc, 100, 30))
     elif args.easy_graphs:
         easier_data_graphs(path_to_here, path_to_src, path_to_tgt, path_to_voc)
+    elif args.imp_cnt:
+        imp_cnt(path_to_voc, path_to_train, path_to_tgt_train)
     else:
-        print("Please use either one of these tags: -unk -oov -rewrite")
+        print("Please use either one of these tags: -unk -oov -rewrite -type -buglen -difflen -easy_acc -easy_graphs -")
