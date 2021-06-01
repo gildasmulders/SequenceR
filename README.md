@@ -93,3 +93,21 @@ For details on model usage (translation), refer to OpenNMT documentation. To run
 cd src
 sequencer-test.sh
 ```
+
+
+## INSTALLING THE RIGHT PYTHON VERSION ON CECI CLUSTERS:
+
+$ export PYTHON_VERSION=3.6.13 
+
+$ curl -O https://www.python.org/ftp/python/${PYTH
+ON_VERSION}/Python-${PYTHON_VERSION}.tgz 
+
+$ tar -xvzf Python-${PYTHON_VERSION}.tgz 
+
+$ cd Python-3.6.13/ 
+
+$ $./configure --prefix ~/.local/ 
+
+$ make -j 4 
+
+$ make install 
